@@ -105,6 +105,8 @@ choose another controller. It uses the browser Gamepad API; no input is sent to 
 The visual labels follow this project's default firmware mapping. Keys 1–6 share a wire, so
 test them one at a time. On V1, A and B may control the Y axis while its contact is disconnected.
 
+The tester includes a **Read Bluetooth battery** button when Web Bluetooth is available. Select your controller to read its Battery Service value. The current V1 firmware reports a fixed **100%**, because the Joystick:bit supplies no battery reading; this is not a measurement of remaining charge. The page labels this limitation and shows the selected Bluetooth device separately from the gamepad selection.
+
 ### How pairing works
 
 * Every HID characteristic requires an encrypted link. On connect, the gamepad sends a security

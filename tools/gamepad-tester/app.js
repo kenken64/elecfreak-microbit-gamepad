@@ -5,8 +5,73 @@
   const tested = new Set();
   const visualButtons = [...document.querySelectorAll('[data-button]')];
   const chips = [...document.querySelectorAll('[data-chip]')];
+  const ledGrid = document.querySelector('.led-grid');
+  const leds = Array.from({ length: 25 }, () => {
+    const led = document.createElement('span');
+    led.className = 'led';
+    ledGrid.appendChild(led);
+    return led;
+  });
+  // Row bitmaps and button priority match v1_display.cpp and show_live().
+  const glyphs = [
+    [0x04, 0x06, 0x04, 0x04, 0x0e],
+    [0x0f, 0x10, 0x0e, 0x01, 0x1f],
+    [0x0f, 0x10, 0x0c, 0x10, 0x0f],
+    [0x0c, 0x0a, 0x09, 0x1f, 0x08],
+    [0x1f, 0x01, 0x0f, 0x10, 0x0f],
+    [0x0c, 0x02, 0x0f, 0x11, 0x0e],
+    [0x06, 0x09, 0x0f, 0x09, 0x09],
+    [0x07, 0x09, 0x07, 0x09, 0x07],
+  ];
+  const pressed = button => !!button && (button.pressed || button.value > 0.5);
+  const axisToLed = value => Math.floor((Math.round(value * 127) + 127) * 5 / 255);
+  function renderLeds(pad, x, y) {
+    const key = pad ? glyphs.findIndex((_, i) => pressed(pad.buttons[i])) : -1;
+    const rows = key >= 0 ? glyphs[key] : [0, 0, 0, 0, 0];
+    if (key < 0) rows[axisToLed(y)] = 1 << axisToLed(x);
+    leds.forEach((led, i) => led.classList.toggle('active', !!(rows[Math.floor(i / 5)] & (1 << (i % 5)))));
+  }
   let selected = null;
   let previousDevices = '';
+  const batteryButton = $('battery-connect');
+  const batteryMessage = $('battery-message');
+  let batteryDevice = null;
+  if (!navigator.bluetooth) {
+    batteryButton.disabled = true;
+    batteryMessage.textContent = 'Bluetooth battery reading is unavailable in this browser. Actual V1 charge is not measured.';
+  }
+  batteryButton.addEventListener('click', async () => {
+    batteryButton.disabled = true;
+    $('battery-level').textContent = 'Not measured';
+    $('battery-device').textContent = '';
+    batteryMessage.textContent = 'Choose your controller in the Bluetooth picker.';
+    try {
+      if (batteryDevice?.gatt.connected) batteryDevice.gatt.disconnect();
+      batteryDevice = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ['battery_service'] }],
+      });
+      const device = batteryDevice;
+      device.addEventListener('gattserverdisconnected', () => {
+        if (batteryDevice !== device) return;
+        $('battery-level').textContent = 'Not measured';
+        batteryMessage.textContent = 'Battery connection closed. Read again to reconnect.';
+      }, { once: true });
+      $('battery-device').textContent = `Bluetooth device: ${device.name || 'Unnamed device'}`;
+      batteryMessage.textContent = 'Reading battery service…';
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService('battery_service');
+      const characteristic = await service.getCharacteristic('battery_level');
+      const value = await characteristic.readValue();
+      if (value.byteLength !== 1 || value.getUint8(0) > 100) throw new Error('Invalid battery value');
+      $('battery-level').textContent = `${value.getUint8(0)}% reported`;
+      batteryMessage.textContent = 'Read just now. Current V1 firmware reports a fixed value, not measured charge.';
+    } catch (error) {
+      $('battery-level').textContent = 'Not measured';
+      batteryMessage.textContent = error.name === 'NotFoundError' ? 'No device selected or battery service unavailable. You can try again.' : 'Could not read Bluetooth battery. Check device access and try again.';
+    } finally {
+      batteryButton.disabled = false;
+    }
+  });
 
   function reset() { tested.clear(); updateTested(); }
   function updateTested() {
@@ -40,6 +105,7 @@
     $('status').lastChild.textContent = connected ? ' CONNECTED' : ' WAITING';
     const x = connected ? safeAxis(pad.axes[0]) : 0;
     const y = connected ? safeAxis(pad.axes[1]) : 0;
+    renderLeds(pad, x, y);
     $('axis-x').textContent = connected && pad.axes.length > 0 ? x.toFixed(2) : '—';
     $('axis-y').textContent = connected && pad.axes.length > 1 ? y.toFixed(2) : '—';
     $('stick-knob').style.transform = `translate(${x * 22}px, ${y * 22}px)`;

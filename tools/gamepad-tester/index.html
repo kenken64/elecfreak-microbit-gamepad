@@ -13,6 +13,10 @@
   <main id="top">
     <div class="intro"><div><div class="eyebrow"><span></span> THE CONTROLLER CHECK</div><h1>Give your gamepad<br><em>a little spin.</em></h1><p>Connect your micro:bit gamepad and see every move, press, and direction come to life.</p></div><div class="intro-number">01 <span>/ 03</span><small>READY TO PLAY</small></div></div>
     <section class="connection" aria-label="Controller connection"><div class="connection-icon" aria-hidden="true">⌁</div><div class="connection-copy"><span id="connection-title">Waiting for a gamepad</span><small id="connection-detail">Pair over Bluetooth, then press any button on your controller.</small></div><div class="connection-actions"><label for="gamepads">CONTROLLER</label><select id="gamepads" disabled><option>No gamepad detected</option></select><span class="status" id="status"><i></i> WAITING</span></div></section>
+    <section class="battery-panel" aria-label="Controller battery">
+      <div><span class="section-index">BATTERY</span><strong id="battery-level" aria-live="polite">Not measured</strong><small>Current V1 firmware always reports 100%; actual charge is unavailable.</small></div>
+      <div><span id="battery-device"></span><p id="battery-message" role="status">Read the Bluetooth-reported value separately from gamepad input.</p><button id="battery-connect" type="button">Read Bluetooth battery</button></div>
+    </section>
     <div class="dashboard">
       <section class="panel controller-panel"><div class="section-head"><div><span class="section-index">01 / LIVE VIEW</span><h2>Your controller <span>↗</span></h2></div><span class="live-tag"><i></i> LIVE INPUT</span></div><p class="panel-description">Press a button or move the stick to see it respond.</p>
         <div class="controller-stage"><div class="stage-label top-left">INPUT VISUALIZER <span>●</span></div><div class="stage-label top-right">JOYSTICK:BIT V1</div>
