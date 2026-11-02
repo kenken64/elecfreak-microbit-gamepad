@@ -138,7 +138,11 @@ MakeCode and Scratch. It needs an internet connection the first time to load Blo
 
 * The left side holds the blocks and the right side shows the generated `main.cpp`, which updates
   as you edit.
-* **Save** writes `blocks/gamepad.json` (your blocks) and `src/v1/main.cpp` (the C++).
+* The workspace starts empty. Drag blocks from the categories to build your own program.
+* **? Solution help** opens the complete default solution in a separate, read-only window. Zoom or
+  scroll to inspect it while you build. **Open saved** restores a previously saved project.
+* **Save** writes `blocks/gamepad.json` (your blocks) and `src/v1/main.cpp` (the C++). If you
+  started with an empty workspace, the editor asks before replacing an existing saved project.
 * **Download** saves, builds the firmware on your PC with PlatformIO (`pio run`), and downloads
   **`microbit-gamepad.hex`**. While it builds, the *Build log* tab shows PlatformIO's output live.
 * **Load firmware default** restores the blocks that match the original firmware.

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solution help · Gamepad Blocks</title>
+<style>
+  :root { color-scheme: light dark; font-family: 'Segoe UI', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; flex-direction: column; background: #f9fafc; color: #1b2130; }
+  header { padding: 14px 20px; background: #fff; border-bottom: 1px solid #dde2ea; display: flex; align-items: center; gap: 12px 24px; flex-wrap: wrap; }
+  h1 { font-size: 20px; margin: 0; }
+  p { margin: 4px 0 0; color: #5b6577; font-size: 13px; }
+  button { margin-left: auto; padding: 9px 13px; border: 1px solid #dde2ea; border-radius: 8px; color: inherit; background: transparent; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  button:focus-visible { outline: 2px solid #d9480f; outline-offset: 2px; }
+  #solution { flex: 1; min-height: 0; }
+  @media (prefers-color-scheme: dark) { body { background: #141821; color: #e7ebf3; } header { background: #1b202b; border-color: #2a3242; } p { color: #9aa4b6; } button { border-color: #495468; } }
+</style>
+<script src="https://unpkg.com/blockly@11.1.1/blockly.min.js"></script>
+<script src="gp_blocks.js"></script>
+</head>
+<body>
+<header><div><h1>? Complete solution</h1><p>Use this read-only guide to build the program yourself. Zoom and scroll to see the details.</p></div><button id="fit" type="button">Fit all blocks</button></header>
+<div id="solution" aria-label="Complete solution blocks"></div>
+<script>
+(function () {
+  'use strict';
+  var dark = window.matchMedia('(prefers-color-scheme: dark)');
+  var ws = Blockly.inject('solution', {
+    readOnly: true,
+    renderer: 'zelos',
+    theme: GP.theme(dark.matches),
+    grid: {spacing: 24, length: 2, colour: dark.matches ? '#283040' : '#cfd6e2'},
+    zoom: {controls: true, wheel: true, startScale: 0.7, maxScale: 2, minScale: 0.15, scaleSpeed: 1.15},
+    move: {scrollbars: true, drag: true, wheel: true}
+  });
+  Blockly.serialization.workspaces.load(GP.defaultProgram(), ws);
+  function fit() { Blockly.svgResize(ws); ws.zoomToFit(); }
+  document.getElementById('fit').addEventListener('click', fit);
+  window.addEventListener('resize', function () { Blockly.svgResize(ws); });
+  if (dark.addEventListener) { dark.addEventListener('change', function (e) { ws.setTheme(GP.theme(e.matches)); }); }
+  requestAnimationFrame(fit);
+})();
+</script>
+</body>
+</html>

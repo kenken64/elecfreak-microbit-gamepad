@@ -72,6 +72,8 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 button.small { padding: 6px 10px; font-size: 12.5px; }
 button.armed { border-color: var(--err); color: var(--err); }
+.help-link { display: inline-block; text-decoration: none; font: 700 13.5px/1 var(--f-body); color: var(--accent); background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 9px 14px; }
+.help-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .split { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 38%); }
 .ws { position: relative; min-width: 0; min-height: 0; }
@@ -114,6 +116,8 @@ button.armed { border-color: var(--err); color: var(--err); }
   </div>
   <div class="actions">
     <span id="status" class="status" role="status" aria-live="polite">Loading&hellip;</span>
+    <a id="btn-help" class="help-link" href="solution.html" target="gamepad-solution" title="Open the complete solution in a separate window">? Solution help</a>
+    <button id="btn-saved" type="button" disabled title="Open the previously saved project">Open saved</button>
     <button id="btn-default" type="button" title="Replace the blocks with the program that matches the hand-written firmware">Load firmware default</button>
     <button id="btn-save" type="button">Save</button>
     <button id="btn-download" type="button" class="primary" title="Save, build the firmware on this PC and download microbit-gamepad.hex">Download</button>
@@ -169,11 +173,21 @@ button.armed { border-color: var(--err); color: var(--err); }
 	var btnSave = document.getElementById('btn-save');
 	var btnDownload = document.getElementById('btn-download');
 	var btnDefault = document.getElementById('btn-default');
+	var btnSaved = document.getElementById('btn-saved');
+	var btnHelp = document.getElementById('btn-help');
 	var btnCopy = document.getElementById('btn-copy');
 
 	var dirty = false;
 	var busy = false;
 	var lastCode = '';
+	var savedProgram = null;
+	var savedKnown = false;
+	var replacingSaved = false;
+
+	btnHelp.addEventListener('click', function (e) {
+		var help = window.open(btnHelp.href, 'gamepad-solution', 'popup,width=1100,height=800,resizable=yes,scrollbars=yes');
+		if (help) { e.preventDefault(); help.focus(); }
+	});
 
 	function setStatus(text, kind) {
 		statusEl.textContent = text;
@@ -267,6 +281,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 		btnSave.disabled = on || !served;
 		btnDownload.disabled = on || !served;
 		btnDefault.disabled = on;
+		btnSaved.disabled = on || !savedProgram;
 	}
 
 	function post(path, body) {
@@ -289,11 +304,20 @@ button.armed { border-color: var(--err); color: var(--err); }
 		if (problems.length) {
 			return Promise.reject(new Error('Fix the blocks first: ' + problems.join(', ')));
 		}
+		if (!savedKnown) {
+			return Promise.reject(new Error('The saved project could not be checked. Reload before saving.'));
+		}
+		if (replacingSaved && !window.confirm('Saving will replace the previously saved project. Continue?')) {
+			return Promise.reject(new Error('Save cancelled. Your previously saved project is unchanged.'));
+		}
+		var program = Blockly.serialization.workspaces.save(ws);
 		return post('/api/save', {
-			program: Blockly.serialization.workspaces.save(ws),
+			program: program,
 			code: lastCode,
 		}).then(function (data) {
 			dirty = false;
+			savedProgram = program;
+			replacingSaved = false;
 			return data;
 		});
 	}
@@ -402,6 +426,13 @@ button.armed { border-color: var(--err); color: var(--err); }
 	});
 
 	var armTimer = 0;
+	btnSaved.addEventListener('click', function () {
+		if (!savedProgram || (dirty && !window.confirm('Replace your unsaved blocks with the saved project?'))) { return; }
+		load(savedProgram);
+		dirty = false;
+		replacingSaved = false;
+		setStatus('Opened your saved project.', 'ok');
+	});
 	btnDefault.addEventListener('click', function () {
 		if (!btnDefault.classList.contains('armed')) {
 			btnDefault.classList.add('armed');
@@ -417,6 +448,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 		btnDefault.textContent = 'Load firmware default';
 		load(GP.defaultProgram());
 		dirty = true;
+		replacingSaved = !!savedProgram;
 		setStatus('Loaded the firmware default. Save to keep it.', '');
 	});
 
@@ -446,19 +478,23 @@ button.armed { border-color: var(--err); color: var(--err); }
 	});
 
 	setBusy(false);
+	load({});
 	if (!served) {
-		load(GP.defaultProgram());
 		dirty = false;
 		setStatus('Opened as a file. Run "python tools/blocks_editor.py" to save and upload.', 'warn');
 		return;
 	}
-	fetch('/api/program').then(function (r) { return r.json(); }).then(function (data) {
-		load(data.program || GP.defaultProgram());
-		dirty = !data.program;
-		setStatus(data.program ? 'Loaded blocks/gamepad.json' : 'No saved blocks yet: showing the firmware default.', data.program ? 'ok' : '');
+	setStatus('Start with the Events blocks. Open ? Solution help for a guide.', '');
+	fetch('/api/program').then(function (r) {
+		if (!r.ok) { throw new Error('HTTP ' + r.status); }
+		return r.json();
+	}).then(function (data) {
+		savedProgram = data.program || null;
+		savedKnown = true;
+		replacingSaved = !!savedProgram;
+		setBusy(false);
 	}).catch(function (err) {
-		load(GP.defaultProgram());
-		setStatus('Could not load blocks/gamepad.json (' + err.message + '). Showing the firmware default.', 'err');
+		setStatus('Could not check the saved project (' + err.message + '). Reload before saving.', 'err');
 	});
 })();
 </script>
