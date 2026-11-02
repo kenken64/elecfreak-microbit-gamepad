@@ -105,7 +105,13 @@ choose another controller. It uses the browser Gamepad API; no input is sent to 
 The visual labels follow this project's default firmware mapping. Keys 1–6 share a wire, so
 test them one at a time. On V1, A and B may control the Y axis while its contact is disconnected.
 
-The tester includes a **Read Bluetooth battery** button when Web Bluetooth is available. Select your controller to read its Battery Service value. The current V1 firmware reports a fixed **100%**, because the Joystick:bit supplies no battery reading; this is not a measurement of remaining charge. The page labels this limitation and shows the selected Bluetooth device separately from the gamepad selection.
+The tester's **Read supply voltage** button uses Web Bluetooth to read the micro:bit V1's
+internally measured supply voltage. Choose the updated controller in the Bluetooth picker.
+The measurement is not a battery percentage: USB power and the Joystick:bit's power circuitry
+can affect it, and it may not track the batteries. The standard Bluetooth Battery Service still
+reports a fixed 100% for compatibility; it is not measured charge. The voltage is also logged to
+USB serial in millivolts every five seconds. Older firmware and V2 do not expose this voltage service.
+If the new service is not visible after flashing, remove the old Bluetooth pairing and pair again.
 
 ### How pairing works
 

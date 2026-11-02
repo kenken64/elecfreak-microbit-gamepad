@@ -35,10 +35,12 @@
   let previousDevices = '';
   const batteryButton = $('battery-connect');
   const batteryMessage = $('battery-message');
+  const supplyService = '8c680001-c4a1-445d-b9ed-14f725715c89';
+  const supplyCharacteristic = '8c680002-c4a1-445d-b9ed-14f725715c89';
   let batteryDevice = null;
   if (!navigator.bluetooth) {
     batteryButton.disabled = true;
-    batteryMessage.textContent = 'Bluetooth battery reading is unavailable in this browser. Actual V1 charge is not measured.';
+    batteryMessage.textContent = 'Bluetooth voltage reading is unavailable in this browser.';
   }
   batteryButton.addEventListener('click', async () => {
     batteryButton.disabled = true;
@@ -49,25 +51,28 @@
       if (batteryDevice?.gatt.connected) batteryDevice.gatt.disconnect();
       batteryDevice = await navigator.bluetooth.requestDevice({
         filters: [{ services: ['battery_service'] }],
+        optionalServices: [supplyService],
       });
       const device = batteryDevice;
       device.addEventListener('gattserverdisconnected', () => {
         if (batteryDevice !== device) return;
         $('battery-level').textContent = 'Not measured';
-        batteryMessage.textContent = 'Battery connection closed. Read again to reconnect.';
+        batteryMessage.textContent = 'Bluetooth connection closed. Read again to reconnect.';
       }, { once: true });
       $('battery-device').textContent = `Bluetooth device: ${device.name || 'Unnamed device'}`;
-      batteryMessage.textContent = 'Reading battery service…';
+      batteryMessage.textContent = 'Reading supply voltage…';
       const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('battery_service');
-      const characteristic = await service.getCharacteristic('battery_level');
+      const service = await server.getPrimaryService(supplyService);
+      const characteristic = await service.getCharacteristic(supplyCharacteristic);
       const value = await characteristic.readValue();
-      if (value.byteLength !== 1 || value.getUint8(0) > 100) throw new Error('Invalid battery value');
-      $('battery-level').textContent = `${value.getUint8(0)}% reported`;
-      batteryMessage.textContent = 'Read just now. Current V1 firmware reports a fixed value, not measured charge.';
+      if (value.byteLength !== 2) throw new Error('Invalid voltage value');
+      const millivolts = value.getUint16(0, true);
+      if (!millivolts) throw new Error('No voltage sample yet');
+      $('battery-level').textContent = `${(millivolts / 1000).toFixed(2)} V`;
+      batteryMessage.textContent = 'Read just now. Battery charge cannot be determined from this value alone.';
     } catch (error) {
       $('battery-level').textContent = 'Not measured';
-      batteryMessage.textContent = error.name === 'NotFoundError' ? 'No device selected or battery service unavailable. You can try again.' : 'Could not read Bluetooth battery. Check device access and try again.';
+      batteryMessage.textContent = error.name === 'NotFoundError' ? 'Device or voltage service not found. Select the updated micro:bit and try again.' : 'Could not read voltage. Check device access and make sure the updated V1 firmware is installed.';
     } finally {
       batteryButton.disabled = false;
     }

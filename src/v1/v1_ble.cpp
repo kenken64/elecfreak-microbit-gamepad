@@ -75,6 +75,16 @@ static const uint8_t zero_byte = 0;
 
 static ble_gatts_char_handles_t report_h;
 static ble_gatts_char_handles_t bas_h;
+static ble_gatts_char_handles_t supply_h;
+
+/* 8c680001-c4a1-445d-b9ed-14f725715c89: supply voltage service.
+ * Characteristic 8c680002-... contains uint16 millivolts, little-endian.
+ * Zero means no successful sample yet. */
+static const ble_uuid128_t supply_uuid_base = {{
+	0x89, 0x5c, 0x71, 0x25, 0xf7, 0x14, 0xed, 0xb9,
+	0x5d, 0x44, 0xa1, 0xc4, 0x00, 0x00, 0x68, 0x8c,
+}};
+static const uint8_t supply_initial[2] = {0, 0};
 
 /* Advertising: flags, appearance (gamepad), 16-bit UUIDs HID + Battery */
 static const uint8_t adv_data[] = {
@@ -512,7 +522,7 @@ static void sd_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
 
 static uint32_t add_char(uint16_t svc, uint16_t uuid16, bool read, bool notify, bool write_wo_resp,
 			 bool encrypted_access, const uint8_t *value, uint16_t len,
-			 ble_gatts_char_handles_t *handles)
+			 ble_gatts_char_handles_t *handles, uint8_t uuid_type = BLE_UUID_TYPE_BLE)
 {
 	ble_gatts_char_md_t char_md;
 	ble_gatts_attr_md_t cccd_md;
@@ -555,7 +565,7 @@ static uint32_t add_char(uint16_t svc, uint16_t uuid16, bool read, bool notify, 
 	attr_md.vloc = BLE_GATTS_VLOC_STACK;
 
 	uuid.uuid = uuid16;
-	uuid.type = BLE_UUID_TYPE_BLE;
+	uuid.type = uuid_type;
 
 	memset(&attr, 0, sizeof(attr));
 	attr.p_uuid = &uuid;
@@ -615,6 +625,8 @@ static bool gatt_init(void)
 {
 	ble_gatts_char_handles_t h;
 	uint16_t svc;
+	uint8_t supply_uuid_type;
+	ble_uuid_t supply_uuid;
 
 	/* HID service */
 	CHECK(add_service(0x1812, &svc));
@@ -632,6 +644,14 @@ static bool gatt_init(void)
 	/* Device Information: PnP ID */
 	CHECK(add_service(0x180A, &svc));
 	CHECK(add_char(svc, 0x2A50, true, false, false, false, pnp_id, sizeof(pnp_id), &h));
+
+	/* Append the voltage service so existing HID attribute handles stay stable. */
+	CHECK(sd_ble_uuid_vs_add(&supply_uuid_base, &supply_uuid_type));
+	supply_uuid.uuid = 0x0001;
+	supply_uuid.type = supply_uuid_type;
+	CHECK(sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &supply_uuid, &svc));
+	CHECK(add_char(svc, 0x0002, true, false, false, false, supply_initial,
+		       sizeof(supply_initial), &supply_h, supply_uuid_type));
 
 	return true;
 }
@@ -698,10 +718,62 @@ bool ble_init(const char *name)
 /* Runtime                                                                   */
 /* ------------------------------------------------------------------------ */
 
+/* analogRead() also uses the ADC. This runs only in the main loop, between
+ * input samples, and restores its configuration before the next analogRead. */
+static uint16_t read_supply_mv(void)
+{
+	uint32_t old_config = NRF_ADC->CONFIG;
+	uint32_t old_enable = NRF_ADC->ENABLE;
+	NRF_ADC->ENABLE = 1;
+	NRF_ADC->CONFIG = (ADC_CONFIG_RES_10bit << ADC_CONFIG_RES_Pos) |
+		(ADC_CONFIG_INPSEL_SupplyOneThirdPrescaling << ADC_CONFIG_INPSEL_Pos) |
+		(ADC_CONFIG_REFSEL_VBG << ADC_CONFIG_REFSEL_Pos);
+	NRF_ADC->EVENTS_END = 0;
+	NRF_ADC->TASKS_START = 1;
+	uint32_t start = micros();
+	while (!NRF_ADC->EVENTS_END && (uint32_t)(micros() - start) < 10000) { }
+	uint16_t mv = 0;
+	if (NRF_ADC->EVENTS_END) {
+		/* The 10-bit ADC measures VDD / 3 against a nominal 1.2 V reference. */
+		mv = (uint16_t)((NRF_ADC->RESULT * 3600UL + 512) / 1024);
+	}
+	NRF_ADC->TASKS_STOP = 1;
+	NRF_ADC->EVENTS_END = 0;
+	NRF_ADC->ENABLE = old_enable;
+	NRF_ADC->CONFIG = old_config;
+	return mv;
+}
+
+static void update_supply(void)
+{
+	static uint32_t last_sample;
+	static bool sampled;
+	uint32_t now = millis();
+	if (sampled && (uint32_t)(now - last_sample) < 5000) {
+		return;
+	}
+	sampled = true;
+	last_sample = now;
+	uint16_t mv = read_supply_mv();
+	if (!mv) {
+		ble_log("Supply voltage sample failed");
+		return;
+	}
+	uint8_t bytes[2] = {(uint8_t)mv, (uint8_t)(mv >> 8)};
+	ble_gatts_value_t value = {sizeof(bytes), 0, bytes};
+	uint32_t err = sd_ble_gatts_value_set(BLE_CONN_HANDLE_INVALID, supply_h.value_handle, &value);
+	if (err == NRF_SUCCESS) {
+		ble_log("Supply voltage: %u mV", mv);
+	} else {
+		ble_log("Supply update failed: 0x%lx", (unsigned long)err);
+	}
+}
+
 void ble_poll(void)
 {
 	static uint32_t evt_buf[(sizeof(ble_evt_t) + GATT_MTU_SIZE_DEFAULT + 3) / 4];
 	uint32_t soc_evt;
+	update_supply();
 
 	while (sd_evt_get(&soc_evt) == NRF_SUCCESS) {
 		on_soc_evt(soc_evt);
