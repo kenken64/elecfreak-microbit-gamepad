@@ -1,0 +1,56 @@
+/*
+ * ELECFREAKS Joystick:bit V1 (EF03407) on a BBC micro:bit V2
+ *
+ *   edge P0  = nRF P0.02 = AIN0  -> joystick X        (analog)
+ *   edge P1  = nRF P0.03 = AIN1  -> joystick Y        (analog)
+ *   edge P2  = nRF P0.04 = AIN2  -> keys 1..6         (resistor ladder, analog)
+ *
+ * Gain 1/4 with VDD/4 reference gives a full scale of VDD, i.e. the readings
+ * are ratiometric exactly like MakeCode's analogReadPin().
+ *
+ * NOTE: PlatformIO does not notice edits to this file on its own.
+ *       After changing it, run "pio run -t clean" before building.
+ */
+
+#include <zephyr/dt-bindings/adc/adc.h>
+#include <zephyr/dt-bindings/adc/nrf-saadc.h>
+
+/ {
+	zephyr,user {
+		io-channels = <&adc 0>, <&adc 1>, <&adc 2>;
+		io-channel-names = "joy_x", "joy_y", "keys";
+	};
+};
+
+&adc {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	channel@0 {
+		reg = <0>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_VDD_1_4";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN0>;
+		zephyr,resolution = <12>;
+	};
+
+	channel@1 {
+		reg = <1>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_VDD_1_4";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN1>;
+		zephyr,resolution = <12>;
+	};
+
+	channel@2 {
+		reg = <2>;
+		zephyr,gain = "ADC_GAIN_1_4";
+		zephyr,reference = "ADC_REF_VDD_1_4";
+		zephyr,acquisition-time = <ADC_ACQ_TIME(ADC_ACQ_TIME_MICROSECONDS, 40)>;
+		zephyr,input-positive = <NRF_SAADC_AIN2>;
+		zephyr,resolution = <12>;
+	};
+};

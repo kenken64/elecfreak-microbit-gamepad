@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gamepad Firmware Blocks</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a MakeCode-style workspace per firmware stage, block stack on the left, yellow comment notes on the right */
+:root {
+  --ws: #eef1f6;
+  --panel: #f9fafc;
+  --ink: #1b2130;
+  --muted: #5b6577;
+  --grid: #cfd6e2;
+  --line: #dde2ea;
+  --note: #fef49c;
+  --note-ink: #3a3100;
+  --blk-edge: rgb(0 0 0 / 0);
+  --led-on: #ff3b30;
+  --led-off: rgb(0 0 0 / .28);
+
+  /* micro:bit MakeCode category colours */
+  --basic: #1e90ff;
+  --input: #c400c4;
+  --led: #5c2d91;
+  --loops: #00a000;
+  --logic: #00a4a6;
+  --vars: #dc143c;
+  --math: #9400d3;
+  --fn: #3455db;
+  --pins: #b22222;
+  --serial: #002050;
+  --bt: #0072e0;
+
+  --f-display: "Fredoka", "Nunito", system-ui, sans-serif;
+  --f-block: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ws: #141821; --panel: #1b202b; --ink: #e7ebf3; --muted: #9aa4b6;
+    --grid: #283040; --line: #2a3242; --note: #e8d96a; --note-ink: #2a2300;
+    --blk-edge: rgb(255 255 255 / .10); --serial: #1d3f7a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ws: #141821; --panel: #1b202b; --ink: #e7ebf3; --muted: #9aa4b6;
+  --grid: #283040; --line: #2a3242; --note: #e8d96a; --note-ink: #2a2300;
+  --blk-edge: rgb(255 255 255 / .10); --serial: #1d3f7a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--panel);
+  color: var(--ink);
+  font: 400 15px/1.55 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+.page { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 40px; }
+
+/* ---------- header ---------- */
+.top { display: flex; flex-direction: column; gap: 14px; }
+.top h1 {
+  font: 600 clamp(28px, 5vw, 42px)/1.1 var(--f-display);
+  margin: 0; text-wrap: balance; letter-spacing: -.01em;
+}
+.top p { margin: 0; max-width: 66ch; color: var(--muted); }
+.top p strong { color: var(--ink); }
+.pins { display: flex; flex-wrap: wrap; gap: 8px; }
+.pin {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--ws); border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 12px 4px 4px; font-size: 13.5px;
+}
+.pin b {
+  background: var(--pins); color: #fff; border-radius: 999px; padding: 1px 9px;
+  font: 700 12.5px/1.6 var(--f-block);
+}
+
+/* ---------- lanes ---------- */
+.lane { display: flex; flex-direction: column; gap: 12px; }
+.lane-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.lane-head h2 { font: 600 22px/1.2 var(--f-display); margin: 0; text-wrap: balance; }
+.src { font: 400 12px/1.5 var(--f-mono); color: var(--muted); overflow-wrap: anywhere; }
+.lane-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+@media (min-width: 900px) {
+  .lane-grid { grid-template-columns: minmax(0, 1fr) 290px; align-items: start; }
+}
+.ws {
+  background-color: var(--ws);
+  background-image: radial-gradient(var(--grid) 1.2px, transparent 1.2px);
+  background-size: 22px 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 22px 18px 28px;
+  overflow-x: auto;
+  min-width: 0;
+  display: flex; flex-wrap: wrap; gap: 28px 32px; align-items: flex-start;
+}
+.notes { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.note {
+  background: var(--note); color: var(--note-ink);
+  border-radius: 4px; padding: 10px 13px;
+  font: 600 13.5px/1.45 var(--f-body);
+  box-shadow: 0 1px 0 rgb(0 0 0 / .10);
+}
+.note .src { color: inherit; opacity: .75; }
+
+/* ---------- blocks ---------- */
+.stack { display: flex; flex-direction: column; align-items: flex-start; max-width: 100%; }
+.blk {
+  position: relative;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  background: var(--c); color: #fff;
+  font: 700 13.5px/1.3 var(--f-block);
+  padding: 7px 12px 8px; min-height: 36px; max-width: 100%;
+  border-radius: 5px;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / .2), 0 0 0 1px var(--blk-edge);
+}
+.blk::after {
+  content: ""; position: absolute; left: 14px; bottom: -6px;
+  width: 20px; height: 6px; background: var(--c);
+  border-radius: 0 0 4px 4px; z-index: 1;
+}
+.c { display: flex; flex-direction: column; align-items: flex-start; max-width: 100%; }
+.c > .arm { border-bottom-left-radius: 0; }
+.c > .arm::after { left: 30px; }
+.c > .arm.mid { border-top-left-radius: 0; }
+.c > .body {
+  border-left: 16px solid var(--c);
+  display: flex; flex-direction: column; align-items: flex-start;
+  padding: 2px 0 6px; min-height: 22px; max-width: 100%;
+}
+.c > .foot {
+  position: relative; width: 104px; height: 14px; background: var(--c);
+  border-radius: 0 0 5px 5px;
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / .2), 0 0 0 1px var(--blk-edge);
+}
+.c > .foot::after {
+  content: ""; position: absolute; left: 14px; bottom: -6px;
+  width: 20px; height: 6px; background: var(--c); border-radius: 0 0 4px 4px; z-index: 1;
+}
+.hat > .arm:first-child { border-top-left-radius: 18px; border-top-right-radius: 18px; padding-top: 12px; }
+.c.hat > .foot::after { display: none; }
+
+.r, .bool {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 5px;
+  background: var(--c); color: #fff; padding: 3px 10px;
+}
+.r { border-radius: 999px; box-shadow: 0 0 0 1px rgb(0 0 0 / .2); }
+.bool {
+  padding: 3px 16px;
+  clip-path: polygon(11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%, 0 50%);
+}
+.n, .s {
+  background: #fff; color: #23272f; font-weight: 800; padding: 1px 9px;
+}
+.n { border-radius: 999px; font-variant-numeric: tabular-nums; }
+.s { border-radius: 4px; }
+.s::before, .s::after { content: "\201C"; opacity: .45; }
+.s::after { content: "\201D"; }
+.dd { background: rgb(0 0 0 / .22); border-radius: 999px; padding: 1px 9px; }
+.dd::after { content: " \25BE"; font-size: 11px; opacity: .85; }
+.op { opacity: .9; }
+
+.k-basic  { --c: var(--basic); }
+.k-input  { --c: var(--input); }
+.k-led    { --c: var(--led); }
+.k-loops  { --c: var(--loops); }
+.k-logic  { --c: var(--logic); }
+.k-vars   { --c: var(--vars); }
+.k-math   { --c: var(--math); }
+.k-fn     { --c: var(--fn); }
+.k-pins   { --c: var(--pins); }
+.k-serial { --c: var(--serial); }
+.k-bt     { --c: var(--bt); }
+
+/* 5x5 LED picture, as on the micro:bit */
+.leds {
+  display: inline-grid; grid-template-columns: repeat(5, 7px); gap: 2px;
+  padding: 4px; background: rgb(0 0 0 / .28); border-radius: 4px;
+}
+.leds i { width: 7px; height: 7px; border-radius: 1.5px; background: var(--led-off); }
+.leds i.on { background: var(--led-on); box-shadow: 0 0 4px var(--led-on); }
+
+/* ---------- legend ---------- */
+.legend { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr)); gap: 10px; }
+.key {
+  display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 4px 10px; align-items: start;
+  padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--ws);
+}
+.key .sw { width: 18px; height: 18px; border-radius: 4px; background: var(--c); margin-top: 2px; }
+.key b { font: 700 14px/1.4 var(--f-block); }
+.key span { grid-column: 2; color: var(--muted); font-size: 13.5px; }
+footer { color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+footer code { font: 12.5px var(--f-mono); }
+</style>
+<style>
+/* standalone page reset (the artifact viewer normally supplies this) */
+html { color-scheme: light; }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* render mode: one section, used by tools/render_blocks.py for the README images */
+html.render body { padding-block: 18px 22px; }
+html.render .page { gap: 0; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<header class="top">
+  <h1>Gamepad Firmware Blocks</h1>
+  <p>What the micro:bit gamepad firmware does, drawn the way MakeCode draws a program. <strong>It's a picture for reading, not a program you can load:</strong> the real firmware is C++ in <code>src/v1/</code>, running on Nordic's Bluetooth stack. Yellow notes explain each part.</p>
+  <div class="pins" aria-label="Joystick:bit wiring">
+    <span class="pin"><b>P0</b>stick left / right</span>
+    <span class="pin"><b>P1</b>stick up / down</span>
+    <span class="pin"><b>P2</b>keys 1–6 (one wire)</span>
+    <span class="pin"><b>P5</b>button A</span>
+    <span class="pin"><b>P11</b>button B</span>
+  </div>
+</header>
+
+<!-- ============ ON START ============ -->
+<section class="lane" data-section="start">
+  <div class="lane-head">
+    <h2>When it switches on</h2>
+    <span class="src">main.cpp · setup() &nbsp;·&nbsp; gp_runtime.cpp · gp_boot()</span>
+  </div>
+  <div class="lane-grid">
+    <div class="ws">
+      <div class="stack">
+        <div class="c hat k-basic">
+          <div class="blk arm">on start</div>
+          <div class="body">
+            <div class="blk k-serial">serial write line <span class="s">micro:bit Joystick:bit gamepad (V1 / S130) starting</span></div>
+            <div class="blk k-led">start LED screen, one row every <span class="n">2</span> ms</div>
+            <div class="c k-loops">
+              <div class="blk arm">for each pin of <span class="dd">P0, P1, P2</span></div>
+              <div class="body">
+                <div class="blk k-pins">self-test pin: pull down, pull up, is it held?</div>
+              </div>
+              <div class="foot"></div>
+            </div>
+            <div class="blk k-vars">set <span class="r k-vars">centreX</span> to <span class="r k-math">average of <span class="n">16</span> × <span class="r k-pins">analog read pin <span class="dd">P0</span></span></span></div>
+            <div class="blk k-vars">set <span class="r k-vars">centreY</span> to <span class="r k-math">average of <span class="n">16</span> × <span class="r k-pins">analog read pin <span class="dd">P1</span></span></span></div>
+            <div class="blk k-vars">set <span class="r k-vars">forget</span> to <span class="bool k-input">button <span class="dd">A+B</span> is pressed</span></div>
+            <div class="blk k-bt">start Bluetooth gamepad named <span class="s">micro:bit Gamepad</span></div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="r k-vars">forget</span> then</div>
+              <div class="body">
+                <div class="blk k-bt">forget all paired PCs</div>
+                <div class="blk k-basic">show icon <span class="leds" data-rows="11,0A,04,0A,11"></span></div>
+              </div>
+              <div class="foot"></div>
+            </div>
+            <div class="blk k-bt">advertise <span class="s">micro:bit Gamepad</span> every <span class="n">40</span> ms</div>
+          </div>
+          <div class="foot"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note">The <b>self-test</b> pulls each pin down, then up, with the chip's own resistors. A pin the Joystick:bit drives barely moves; a pin with a loose contact swings to 0 and 1023. That's how the P1 fault showed up.</div>
+      <div class="note">The stick is assumed to be <b>centred at power-on</b>. If it reads more than 10 % off-centre, 2047 (the middle of 0–4095) is used instead.</div>
+      <div class="note">Hold <b>A + B</b> while switching on to forget every paired PC. The big X confirms it.</div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ EVERY 10 MS ============ -->
+<section class="lane" data-section="loop">
+  <div class="lane-head">
+    <h2>Every 10 milliseconds</h2>
+    <span class="src">main.cpp · loop() &nbsp;·&nbsp; v1_input.cpp · input_update()</span>
+  </div>
+  <div class="lane-grid">
+    <div class="ws">
+      <div class="stack">
+        <div class="c hat k-loops">
+          <div class="blk arm">every <span class="n">10</span> ms</div>
+          <div class="body">
+            <div class="blk k-vars">set <span class="r k-vars">keys</span> to <span class="r k-pins">analog read pin <span class="dd">P2</span></span></div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">256</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">1</span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">597</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">2</span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">725</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">3</span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">793</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">4</span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">836</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">5</span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-logic"><span class="r k-vars">keys</span> <span class="op">&lt;</span> <span class="n">938</span></span> then</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="n">6</span></div></div>
+              <div class="blk arm mid">else</div>
+              <div class="body"><div class="blk k-vars">set <span class="r k-vars">button</span> to <span class="dd">none</span></div></div>
+              <div class="foot"></div>
+            </div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-input">button <span class="dd">A</span> is pressed</span> then</div>
+              <div class="body"><div class="blk k-vars">add button <span class="n">7</span></div></div>
+              <div class="foot"></div>
+            </div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-input">button <span class="dd">B</span> is pressed</span> then</div>
+              <div class="body"><div class="blk k-vars">add button <span class="n">8</span></div></div>
+              <div class="foot"></div>
+            </div>
+            <div class="blk k-fn">accept buttons only if the same <span class="n">2</span> times in a row</div>
+            <div class="blk k-vars">set <span class="r k-vars">x</span> to <span class="r k-fn">stick position <span class="dd">P0</span> centre <span class="r k-vars">centreX</span></span></div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-pins">pin <span class="dd">P1</span> is connected</span> then</div>
+              <div class="body">
+                <div class="blk k-vars">set <span class="r k-vars">y</span> to <span class="r k-fn">stick position <span class="dd">P1</span> centre <span class="r k-vars">centreY</span>, flipped</span></div>
+              </div>
+              <div class="blk arm mid">else</div>
+              <div class="body">
+                <div class="blk k-vars">remove buttons <span class="n">7</span> and <span class="n">8</span></div>
+                <div class="c k-logic">
+                  <div class="blk arm">if <span class="bool k-input">button <span class="dd">A</span> is pressed</span> then</div>
+                  <div class="body"><div class="blk k-vars">set <span class="r k-vars">y</span> to <span class="n">-127</span> (up)</div></div>
+                  <div class="blk arm mid">else if <span class="bool k-input">button <span class="dd">B</span> is pressed</span> then</div>
+                  <div class="body"><div class="blk k-vars">set <span class="r k-vars">y</span> to <span class="n">127</span> (down)</div></div>
+                  <div class="foot"></div>
+                </div>
+              </div>
+              <div class="foot"></div>
+            </div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-logic"><span class="bool k-bt">PC is ready</span> and <span class="bool k-vars">buttons, x or y changed</span></span> then</div>
+              <div class="body">
+                <div class="blk k-bt">send gamepad report <span class="r k-vars">buttons</span> <span class="r k-vars">x</span> <span class="r k-vars">y</span></div>
+              </div>
+              <div class="foot"></div>
+            </div>
+            <div class="blk k-fn">call <span class="dd">show status</span></div>
+          </div>
+          <div class="foot"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note">All six keys share <b>one wire, P2</b>. Each key pulls it to a different voltage, and the limits sit halfway between them. Your board measured <b>1, 512, 681, 766, 816, 849</b> for keys 1 to 6, and 1017 with nothing pressed.</div>
+      <div class="note">Because the keys share a wire, only <b>one key at a time</b> can be read. A and B have their own pins, so they combine with anything.</div>
+      <div class="note">If P1 loses contact, <b>A becomes up and B becomes down</b>. The stick takes over again once the contact has held for a full second.</div>
+      <div class="note">Only <b>changes</b> are sent over Bluetooth, so a gamepad at rest stays quiet.</div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ BLUETOOTH ============ -->
+<section class="lane" data-section="bluetooth">
+  <div class="lane-head">
+    <h2>Bluetooth events</h2>
+    <span class="src">v1_ble.cpp · on_ble_evt()</span>
+  </div>
+  <div class="lane-grid">
+    <div class="ws">
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on Bluetooth connected</div>
+          <div class="body"><div class="blk k-bt">ask the PC to encrypt the link</div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on pairing request</div>
+          <div class="body"><div class="blk k-bt">pair with <span class="dd">Just Works</span> (no PIN) and bond</div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on pairing complete</div>
+          <div class="body"><div class="blk k-bt">save the PC's key in flash slot <span class="dd">1–4</span></div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on PC turns gamepad reports on</div>
+          <div class="body"><div class="blk k-bt">save that setting with the PC's key</div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on known PC reconnects</div>
+          <div class="body"><div class="blk k-bt">restore its saved settings</div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-bt">
+          <div class="blk arm">on Bluetooth disconnected</div>
+          <div class="body"><div class="blk k-bt">advertise <span class="s">micro:bit Gamepad</span></div></div>
+          <div class="foot"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note">Every gamepad setting needs an <b>encrypted link</b>, so Windows pairs and remembers the gamepad on first connect.</div>
+      <div class="note">Up to <b>4 PCs</b> are remembered. A fifth replaces the one used longest ago.</div>
+      <div class="note">Windows doesn't switch reports back on after a reconnect. The firmware <b>restores the saved setting itself</b>, which is why the gamepad works straight after you switch it on.</div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ FUNCTIONS ============ -->
+<section class="lane" data-section="functions">
+  <div class="lane-head">
+    <h2>Helper functions</h2>
+    <span class="src">v1_input.cpp · scale_axis() &nbsp;·&nbsp; gp_runtime.cpp · gp_status_show()</span>
+  </div>
+  <div class="lane-grid">
+    <div class="ws">
+      <div class="stack">
+        <div class="c hat k-fn">
+          <div class="blk arm">function stick position <span class="r k-vars">pin</span> <span class="r k-vars">centre</span></div>
+          <div class="body">
+            <div class="blk k-vars">set <span class="r k-vars">delta</span> to <span class="r k-math"><span class="r k-pins">analog read pin <span class="r k-vars">pin</span></span> − <span class="r k-vars">centre</span></span></div>
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-logic"><span class="r k-math">absolute of <span class="r k-vars">delta</span></span> <span class="op">&lt;</span> <span class="n">80</span></span> then</div>
+              <div class="body"><div class="blk k-fn">return <span class="n">0</span></div></div>
+              <div class="foot"></div>
+            </div>
+            <div class="blk k-fn">return <span class="r k-math">map <span class="r k-vars">delta</span> to <span class="n">-127</span> … <span class="n">127</span>, last <span class="n">8</span> % = full</span></div>
+          </div>
+          <div class="foot"></div>
+        </div>
+      </div>
+      <div class="stack">
+        <div class="c hat k-fn">
+          <div class="blk arm">function show status</div>
+          <div class="body">
+            <div class="c k-logic">
+              <div class="blk arm">if <span class="bool k-bt">waiting for a PC</span> then</div>
+              <div class="body"><div class="blk k-basic">show <span class="leds anim" data-frames="00,00,04,00,00|00,04,0A,04,00|04,0A,11,0A,04|00,00,00,00,00"></span> rings, <span class="n">200</span> ms per frame</div></div>
+              <div class="blk arm mid">else if <span class="bool k-bt">securing the link</span> then</div>
+              <div class="body"><div class="blk k-basic">show <span class="leds" data-rows="00,0E,0A,0E,00"></span></div></div>
+              <div class="blk arm mid">else if <span class="bool k-bt">just became ready</span> then</div>
+              <div class="body"><div class="blk k-basic">show <span class="leds" data-rows="00,10,08,05,02"></span> for <span class="n">1</span> s</div></div>
+              <div class="blk arm mid">else if <span class="bool k-vars">a button is pressed</span> then</div>
+              <div class="body"><div class="blk k-basic">show <span class="dd">1–6, A, B</span></div></div>
+              <div class="blk arm mid">else</div>
+              <div class="body"><div class="blk k-led">plot dot at <span class="r k-vars">x</span> <span class="r k-vars">y</span></div></div>
+              <div class="foot"></div>
+            </div>
+          </div>
+          <div class="foot"></div>
+        </div>
+      </div>
+    </div>
+    <aside class="notes">
+      <div class="note">The stick reads 0–4095. A <b>dead zone of 80</b> around the centre stops a resting stick from drifting, and the last 8 % of travel counts as full.</div>
+      <div class="note">The LED pictures are the real ones from the firmware: <b>rings</b> while waiting, a <b>square</b> while pairing, a <b>tick</b> when ready, then a dot that follows the stick.</div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ LEGEND ============ -->
+<section class="lane" data-section="legend">
+  <div class="lane-head"><h2>Block colours</h2><span class="src">MakeCode's own category colours</span></div>
+  <div class="legend">
+    <div class="key k-bt"><i class="sw"></i><b>Bluetooth</b><span>Pairing, saved PCs, sending reports · v1_ble.cpp</span></div>
+    <div class="key k-pins"><i class="sw"></i><b>Pins</b><span>Stick, key wire and self-test · v1_input.cpp</span></div>
+    <div class="key k-input"><i class="sw"></i><b>Input</b><span>Buttons A and B · v1_input.cpp</span></div>
+    <div class="key k-basic"><i class="sw"></i><b>Basic and LED</b><span>Pictures on the 5×5 screen · v1_display.cpp, gp_runtime.cpp</span></div>
+    <div class="key k-fn"><i class="sw"></i><b>Functions</b><span>Helpers: stick maths, debounce, status screen</span></div>
+    <div class="key k-serial"><i class="sw"></i><b>Serial</b><span>The diagnostic log over USB at 115200 baud</span></div>
+    <div class="key k-logic"><i class="sw"></i><b>Logic</b><span>If / else decisions and comparisons</span></div>
+    <div class="key k-vars"><i class="sw"></i><b>Variables</b><span>Stored values: keys, buttons, x, y, centres</span></div>
+    <div class="key k-loops"><i class="sw"></i><b>Loops</b><span>The 10 ms cycle and repeated steps</span></div>
+  </div>
+</section>
+
+<footer>Settings live in <code>src/gamepad.h</code>: poll every 10 ms, dead zone 80, debounce 2 samples, left/right not flipped, up/down flipped, A/B stand in for up/down while P1 is disconnected.</footer>
+
+</div>
+
+<script>
+/* Render mode for tools/render_blocks.py:  ?section=start|loop|bluetooth|functions|legend&theme=light|dark */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var theme = q.get("theme");
+  if (theme) document.documentElement.setAttribute("data-theme", theme);
+  var only = q.get("section");
+  if (only) {
+    document.documentElement.classList.add("render");
+    document.querySelector(".top").hidden = true;
+    document.querySelector("footer").hidden = true;
+    document.querySelectorAll("[data-section]").forEach(function (el) {
+      el.hidden = el.getAttribute("data-section") !== only;
+    });
+    /* freeze the rings animation on its biggest frame */
+    document.querySelectorAll(".leds.anim").forEach(function (el) { el.classList.remove("anim"); });
+  }
+  function report() {
+    var r = document.body.getBoundingClientRect();
+    document.documentElement.setAttribute("data-height", Math.ceil(r.bottom + window.scrollY));
+  }
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(report);
+  report();
+})();
+</script>
+<script>
+(function () {
+  function paint(el, rows) {
+    var bytes = rows.split(",").map(function (h) { return parseInt(h, 16); });
+    var cells = el.children.length ? el.children : null;
+    if (!cells) {
+      for (var i = 0; i < 25; i++) el.appendChild(document.createElement("i"));
+      cells = el.children;
+    }
+    for (var r = 0; r < 5; r++)
+      for (var c = 0; c < 5; c++)
+        cells[r * 5 + c].className = (bytes[r] >> c) & 1 ? "on" : "";
+  }
+  document.querySelectorAll(".leds[data-rows]").forEach(function (el) { paint(el, el.dataset.rows); });
+  document.querySelectorAll(".leds[data-frames]:not(.anim)").forEach(function (el) { paint(el, el.dataset.frames.split("|")[2]); });
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.querySelectorAll(".leds.anim").forEach(function (el) {
+    var frames = el.dataset.frames.split("|");
+    var still = reduce || document.documentElement.classList.contains("render");
+    var f = still ? 2 : 0;
+    paint(el, frames[f]);
+    if (still) return;
+    setInterval(function () { f = (f + 1) % frames.length; paint(el, frames[f]); }, 200);
+  });
+})();
+</script>
+
+</body>
+</html>
