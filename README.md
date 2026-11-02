@@ -8,6 +8,7 @@ to install anything on the PC. It shows up as **micro:bit Gamepad** with 8 butto
 - [Controls](#controls)
 - [Build & flash](#build--flash)
 - [Pairing with Windows 11](#pairing-with-windows-11)
+- [Gamepad tester](#gamepad-tester)
 - [Block editor: change the firmware without C++](#block-editor-change-the-firmware-without-c)
 - [How the firmware works, as blocks](#how-the-firmware-works-as-blocks)
 - [Serial log](#serial-log)
@@ -88,6 +89,21 @@ After that, Windows **reconnects by itself** whenever you switch the gamepad on.
 | Tick, then dot  | Ready. The dot shows the stick; pressed keys show `1`–`6`, `A`, `B` |
 | Big **X**       | All pairings deleted (A + B held at power-on) |
 | `!`             | Bluetooth stack failed to start (see serial log) |
+
+## Gamepad tester
+
+Visualize the joystick and all eight buttons in a browser. From the project directory run:
+
+```powershell
+python -m http.server 8000 --bind 127.0.0.1
+```
+
+Open `http://127.0.0.1:8000/tools/gamepad-tester/` in a current browser, pair the gamepad
+with Windows, and press a controller button to make it visible to the browser. The tester
+shows live input and remembers which buttons you have pressed until you reset the check or
+choose another controller. It uses the browser Gamepad API; no input is sent to a server.
+The visual labels follow this project's default firmware mapping. Keys 1–6 share a wire, so
+test them one at a time. On V1, A and B may control the Y axis while its contact is disconnected.
 
 ### How pairing works
 

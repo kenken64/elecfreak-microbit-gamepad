@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101411">
+  <title>Joystick:bit · Gamepad tester</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="#top"><span class="brand-mark">✳</span><span>JOYSTICK<span class="brand-accent">:BIT</span><small>GAMEPAD LAB</small></span></a><span class="top-label">INPUT DIAGNOSTICS <span> / </span> 01</span><span class="local"><i></i> RUNS IN YOUR BROWSER</span></header>
+  <main id="top">
+    <div class="intro"><div><div class="eyebrow"><span></span> THE CONTROLLER CHECK</div><h1>Give your gamepad<br><em>a little spin.</em></h1><p>Connect your micro:bit gamepad and see every move, press, and direction come to life.</p></div><div class="intro-number">01 <span>/ 03</span><small>READY TO PLAY</small></div></div>
+    <section class="connection" aria-label="Controller connection"><div class="connection-icon" aria-hidden="true">⌁</div><div class="connection-copy"><span id="connection-title">Waiting for a gamepad</span><small id="connection-detail">Pair over Bluetooth, then press any button on your controller.</small></div><div class="connection-actions"><label for="gamepads">CONTROLLER</label><select id="gamepads" disabled><option>No gamepad detected</option></select><span class="status" id="status"><i></i> WAITING</span></div></section>
+    <div class="dashboard">
+      <section class="panel controller-panel"><div class="section-head"><div><span class="section-index">01 / LIVE VIEW</span><h2>Your controller <span>↗</span></h2></div><span class="live-tag"><i></i> LIVE INPUT</span></div><p class="panel-description">Press a button or move the stick to see it respond.</p>
+        <div class="controller-stage"><div class="stage-label top-left">INPUT VISUALIZER <span>●</span></div><div class="stage-label top-right">JOYSTICK:BIT V1</div>
+          <div class="controller" aria-label="Controller visualization"><div class="controller-screw screw-one"></div><div class="controller-screw screw-two"></div><div class="controller-screw screw-three"></div><div class="controller-screw screw-four"></div><div class="board-brand">ELECFREAKS <span> / </span> JOYSTICK:BIT</div>
+            <div class="board-inner"><div class="stick-side"><span class="tiny-label">ANALOG STICK</span><div class="stick-base"><div class="stick-rings"><div id="stick-knob" class="stick-knob"><span></span></div></div></div><div class="axis-label">X / Y</div></div>
+              <div class="microbit"><div class="microbit-name">micro<span>:</span>bit</div><div class="led-grid" aria-hidden="true"></div><div class="microbit-controls"><div class="micro-button" data-button="6"><span>A</span></div><div class="micro-button" data-button="7"><span>B</span></div></div><div class="microbit-foot">BBC MICRO:BIT</div></div>
+              <div class="keys-side"><span class="tiny-label">BUTTONS</span><div class="key-grid"><div class="game-key" data-button="0">1</div><div class="game-key" data-button="1">2</div><div class="game-key" data-button="2">3</div><div class="game-key" data-button="3">4</div><div class="game-key" data-button="4">5</div><div class="game-key" data-button="5">6</div></div><span class="key-caption">PRESS TO TEST ↗</span></div></div><div class="board-bottom"><span>DESIGNED FOR PLAY</span><span>● ● ●</span><span>EF03407</span></div></div>
+          <div class="stage-footer"><span>● &nbsp; INPUTS UPDATE IN REAL TIME</span><span>FIG. 01</span></div></div>
+        <div class="controller-footer"><span><i class="legend-dot"></i> ACTIVE INPUT</span><span><i class="legend-ring"></i> NOT PRESSED</span><span class="hardware-note">V1 controller layout</span></div>
+      </section>
+      <aside class="right-column"><section class="panel stick-panel"><div class="section-head"><div><span class="section-index">02 / ANALOG</span><h2>Stick position</h2></div><span class="corner-icon">↗</span></div><div class="stick-readout"><div class="plot"><div class="plot-cross horizontal"></div><div class="plot-cross vertical"></div><div class="plot-circle"></div><div class="plot-center"></div><div id="plot-dot" class="plot-dot"></div><span class="plot-axis axis-x">X</span><span class="plot-axis axis-y">Y</span></div><div class="axis-values"><div><span>X AXIS</span><strong id="axis-x">—</strong><div class="meter"><i id="meter-x"></i></div></div><div><span>Y AXIS</span><strong id="axis-y">—</strong><div class="meter"><i id="meter-y"></i></div></div></div></div><p class="helper">Values range from −1.00 to +1.00. Center is 0.00.</p></section>
+        <section class="panel buttons-panel"><div class="section-head"><div><span class="section-index">03 / DIGITAL</span><h2>Button check</h2></div><span class="corner-icon">↗</span></div><div class="progress-copy"><span>BUTTONS TESTED</span><strong><span id="tested-count">0</span><small> / 8</small></strong></div><div class="progress"><i id="progress-bar"></i></div><div class="button-chips"><div data-chip="0"><b>1</b><small>KEY</small></div><div data-chip="1"><b>2</b><small>KEY</small></div><div data-chip="2"><b>3</b><small>KEY</small></div><div data-chip="3"><b>4</b><small>KEY</small></div><div data-chip="4"><b>5</b><small>KEY</small></div><div data-chip="5"><b>6</b><small>KEY</small></div><div data-chip="6"><b>A</b><small>BIT</small></div><div data-chip="7"><b>B</b><small>BIT</small></div></div><div class="button-bottom"><span>Lights stay on after testing.</span><button id="reset" type="button">RESET ↺</button></div></section></aside>
+    </div>
+    <section class="help"><div><span class="section-index">A QUICK HEADS-UP</span><h2>Nothing moving?</h2></div><p>Pair <strong>micro:bit Gamepad</strong> in your computer’s Bluetooth settings first. Then return here and press a button to let your browser detect it. Keys 1–6 share a wire, so test them one at a time.</p><a href="../../README.md#pairing-with-windows-11">PAIRING GUIDE ↗</a></section>
+  </main><footer><span>JOYSTICK:BIT <b> / </b> GAMEPAD LAB</span><span>MADE FOR CURIOUS HANDS <b>✳</b></span></footer>
+</body></html>
