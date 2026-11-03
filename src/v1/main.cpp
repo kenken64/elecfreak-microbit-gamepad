@@ -58,7 +58,8 @@ void loop()
 	} else {
 		if (gp_button_pressed('A')) {
 			gp_set_axis(GP_AXIS_Y, -127);
-		} else if (gp_button_pressed('B')) {
+		}
+		if (gp_button_pressed('B')) {
 			gp_set_axis(GP_AXIS_Y, 127);
 		}
 	}

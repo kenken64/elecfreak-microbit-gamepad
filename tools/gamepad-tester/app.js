@@ -33,6 +33,14 @@
   }
   let selected = null;
   let previousDevices = '';
+  // The gamepad's name can be changed in the block editor, so also match its
+  // firmware's VID/PID as reported in Chromium and Firefox controller IDs.
+  function isMicrobitGamepad(pad) {
+    const id = pad.id || '';
+    return /micro\s*:?\s*bit/i.test(id) ||
+      /vendor\s*:\s*1209\b.*product\s*:\s*0001\b/i.test(id) ||
+      /\b1209[-:\s]+0001\b/i.test(id);
+  }
   const batteryButton = $('battery-connect');
   const batteryMessage = $('battery-message');
   const supplyService = '8c680001-c4a1-445d-b9ed-14f725715c89';
@@ -102,10 +110,12 @@
       selector.disabled = false;
     }
   }
-  function render(pad) {
+  function render(pad, otherPadsPresent) {
     const connected = !!pad;
     $('connection-title').textContent = connected ? 'Gamepad connected' : 'Waiting for a gamepad';
-    $('connection-detail').textContent = connected ? pad.id : 'Pair over Bluetooth, then press any button on your controller.';
+    $('connection-detail').textContent = connected ? pad.id : otherPadsPresent
+      ? 'Other controllers are hidden. Pair the micro:bit and press one of its buttons.'
+      : 'Pair over Bluetooth, then press any button on your micro:bit gamepad.';
     $('status').classList.toggle('connected', connected);
     $('status').lastChild.textContent = connected ? ' CONNECTED' : ' WAITING';
     const x = connected ? safeAxis(pad.axes[0]) : 0;
@@ -133,9 +143,10 @@
       $('connection-detail').textContent = 'Open this page in a current browser using localhost or HTTPS.';
       return;
     }
-    const pads = Array.from(navigator.getGamepads()).filter(Boolean);
+    const allPads = Array.from(navigator.getGamepads()).filter(Boolean);
+    const pads = allPads.filter(isMicrobitGamepad);
     updateDevices(pads);
-    render(pads.find(p => p.index === selected));
+    render(pads.find(p => p.index === selected), allPads.length > pads.length);
     requestAnimationFrame(frame);
   }
   frame();

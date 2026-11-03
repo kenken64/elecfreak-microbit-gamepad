@@ -4,43 +4,43 @@
     "blocks": [
       {
         "type": "gp_on_start",
-        "id": "I-#RaS?FG-*%3Su7^j84",
-        "x": 30,
-        "y": 30,
+        "id": "?TGdg-(fO]+`*rNAClG!",
+        "x": 300,
+        "y": 60,
         "inputs": {
           "DO": {
             "block": {
               "type": "gp_bt_begin",
-              "id": "HCwqF-2dq~0zs6K3{/~N",
+              "id": "PW`gYL9m8K%l4agGi~$*",
               "fields": {
                 "NAME": "micro:bit Gamepad"
               },
               "next": {
                 "block": {
                   "type": "controls_if",
-                  "id": "`6#M(1XFS=Dr#[/~]L]5",
+                  "id": "p0CIXf+Fq5J$Yb]cl#a=",
                   "inputs": {
                     "IF0": {
                       "block": {
                         "type": "gp_ab_at_start",
-                        "id": "uC5`AFun}U5)c4`{L4r!"
+                        "id": "_$b,YXat#r%Hc6CEmeGS"
                       }
                     },
                     "DO0": {
                       "block": {
                         "type": "gp_forget",
-                        "id": "-Jur,J3%E$7/s2S*4r!]",
+                        "id": "[WoSDG5wz-Ss_#*Ac$.|",
                         "next": {
                           "block": {
                             "type": "gp_show_icon",
-                            "id": "#:=DiB7EfO2)~9z}Z,ab",
+                            "id": "[xbnM}*JEcnm$cH*2F-S",
                             "fields": {
                               "ICON": "CROSS"
                             },
                             "next": {
                               "block": {
                                 "type": "gp_wait_ab",
-                                "id": "e}}Z-{j-)K.N:%5W9GQ!"
+                                "id": "ZxZxdPRWAPnX,4.]z17H"
                               }
                             }
                           }
@@ -56,9 +56,9 @@
       },
       {
         "type": "gp_every",
-        "id": "wa7q/Y/4/kksRWl=rV`^",
-        "x": 560,
-        "y": 30,
+        "id": "$MVPHj=9UWgW)m{w}2c7",
+        "x": 804,
+        "y": 36,
         "fields": {
           "MS": 10
         },
@@ -66,12 +66,12 @@
           "DO": {
             "block": {
               "type": "controls_if",
-              "id": ",hH!K^-@@+EYx/E}z~bS",
+              "id": "U0W?K4a!T0Yw]|kT]_Q4",
               "inputs": {
                 "IF0": {
                   "block": {
                     "type": "gp_key",
-                    "id": "d.BCuH,H5%CXS%@O${*D",
+                    "id": "CsBMka52X8hn!rF(CQIW",
                     "fields": {
                       "KEY": "1"
                     }
@@ -80,7 +80,7 @@
                 "DO0": {
                   "block": {
                     "type": "gp_press",
-                    "id": "|u*kTWa3Pup{3UR9$s=K",
+                    "id": "Hy+!v)Kf]K[mMPHVa*za",
                     "fields": {
                       "BUTTON": "1"
                     }
@@ -90,12 +90,12 @@
               "next": {
                 "block": {
                   "type": "controls_if",
-                  "id": "cvV{`seb_#(uC@~4mxyw",
+                  "id": "N|c-{*UExnXw26%sPVsD",
                   "inputs": {
                     "IF0": {
                       "block": {
                         "type": "gp_key",
-                        "id": "|:5/zA*e-;BINPpkEjtp",
+                        "id": "|b[4M|A?~#:vE85U)Ln#",
                         "fields": {
                           "KEY": "2"
                         }
@@ -104,7 +104,7 @@
                     "DO0": {
                       "block": {
                         "type": "gp_press",
-                        "id": "wuweZ^2HJE=!!|_gH}hR",
+                        "id": "cPGr#Fy!.y-@((c+ytL4",
                         "fields": {
                           "BUTTON": "2"
                         }
@@ -114,12 +114,12 @@
                   "next": {
                     "block": {
                       "type": "controls_if",
-                      "id": "yyyT/US`_dK5,WYjKkNB",
+                      "id": "AeO}n)F$*R@r9xpk}tb7",
                       "inputs": {
                         "IF0": {
                           "block": {
                             "type": "gp_key",
-                            "id": "1P5p-m*sO:JtmRVFNhi=",
+                            "id": "ynW*[KQ{[$gfN7p3WsLN",
                             "fields": {
                               "KEY": "3"
                             }
@@ -128,7 +128,7 @@
                         "DO0": {
                           "block": {
                             "type": "gp_press",
-                            "id": "M:@AQn:ilRw6+RZ*C_|3",
+                            "id": "l7wqDmAY,0%h]tb96I/l",
                             "fields": {
                               "BUTTON": "3"
                             }
@@ -138,12 +138,12 @@
                       "next": {
                         "block": {
                           "type": "controls_if",
-                          "id": "$Ir_/XCo?3}roB*7qKlC",
+                          "id": "m=h#YhF^q(9.s-s+td]m",
                           "inputs": {
                             "IF0": {
                               "block": {
                                 "type": "gp_key",
-                                "id": "#KpMkajx2^M(,JT_t@tn",
+                                "id": "|?{pRX$Yt*0(g*mLY#~1",
                                 "fields": {
                                   "KEY": "4"
                                 }
@@ -152,7 +152,7 @@
                             "DO0": {
                               "block": {
                                 "type": "gp_press",
-                                "id": "X+Lhr@^5mB[j]NUOte7h",
+                                "id": "%KnE9+e(.qcIL6DhMCnI",
                                 "fields": {
                                   "BUTTON": "4"
                                 }
@@ -162,12 +162,12 @@
                           "next": {
                             "block": {
                               "type": "controls_if",
-                              "id": "KA|`MLItHOW3%*?X[cLt",
+                              "id": "h%}.SncfI+6.kwLsD4{K",
                               "inputs": {
                                 "IF0": {
                                   "block": {
                                     "type": "gp_key",
-                                    "id": "-v3{R1n:N2y{)iDdd*S+",
+                                    "id": "PPuR1.nQB+H{,FADA.R^",
                                     "fields": {
                                       "KEY": "5"
                                     }
@@ -176,7 +176,7 @@
                                 "DO0": {
                                   "block": {
                                     "type": "gp_press",
-                                    "id": "q!t.P^bcL?1o//v2Gs6w",
+                                    "id": "x`5D)_k6LB!|7DWIJmDT",
                                     "fields": {
                                       "BUTTON": "5"
                                     }
@@ -186,12 +186,12 @@
                               "next": {
                                 "block": {
                                   "type": "controls_if",
-                                  "id": "{-kY3;lMgxDBY-BkM4{W",
+                                  "id": "RQa@,-~~GPG4Tn(sa[,%",
                                   "inputs": {
                                     "IF0": {
                                       "block": {
                                         "type": "gp_key",
-                                        "id": "]j?K8%5u34N-Q1/hrQ|?",
+                                        "id": "i`%N5#OYwUx86IOH5(#!",
                                         "fields": {
                                           "KEY": "6"
                                         }
@@ -200,7 +200,7 @@
                                     "DO0": {
                                       "block": {
                                         "type": "gp_press",
-                                        "id": "Ji0CF~L0g8N8Y=FueUPh",
+                                        "id": "[j5pAHH@#mcyd~?;y]UK",
                                         "fields": {
                                           "BUTTON": "6"
                                         }
@@ -210,7 +210,7 @@
                                   "next": {
                                     "block": {
                                       "type": "gp_set_axis",
-                                      "id": ",q#C*wtJ;DT:$VxuR15Y",
+                                      "id": "2`p74I|hA1e4PyC@qyT|",
                                       "fields": {
                                         "AXIS": "X"
                                       },
@@ -218,14 +218,14 @@
                                         "VALUE": {
                                           "shadow": {
                                             "type": "math_number",
-                                            "id": "a`E;2k@C!YrFIHrnJ`fj",
+                                            "id": "v)GgI#fulf?7NmxUIL.R",
                                             "fields": {
                                               "NUM": 0
                                             }
                                           },
                                           "block": {
                                             "type": "gp_stick",
-                                            "id": "`ZhEO)n+{=R#K~jO#_Q=",
+                                            "id": "A#l#+7!eEsH]sAQWhz=Z",
                                             "fields": {
                                               "AXIS": "X"
                                             }
@@ -235,7 +235,7 @@
                                       "next": {
                                         "block": {
                                           "type": "controls_if",
-                                          "id": "jglf{q[ZOvwtvA;^MFqI",
+                                          "id": "mc2.@]%7TqTq(LR,%iIV",
                                           "extraState": {
                                             "hasElse": true
                                           },
@@ -243,7 +243,7 @@
                                             "IF0": {
                                               "block": {
                                                 "type": "gp_stick_ok",
-                                                "id": "7QWgLU=;rPYF4Cx29hn)",
+                                                "id": "I|mQE]PYVQOs4;^-3G_%",
                                                 "fields": {
                                                   "AXIS": "Y"
                                                 }
@@ -252,7 +252,7 @@
                                             "DO0": {
                                               "block": {
                                                 "type": "gp_set_axis",
-                                                "id": "x4MOo^_NmszY!@6BVS*T",
+                                                "id": "4TODzcdXAp,poo83C.gp",
                                                 "fields": {
                                                   "AXIS": "Y"
                                                 },
@@ -260,14 +260,14 @@
                                                   "VALUE": {
                                                     "shadow": {
                                                       "type": "math_number",
-                                                      "id": ";KOMH}pnda;J0sr5VSQ=",
+                                                      "id": "hBjrsMW,$9~.:[?%W)nA",
                                                       "fields": {
                                                         "NUM": 0
                                                       }
                                                     },
                                                     "block": {
                                                       "type": "gp_stick",
-                                                      "id": "CU3d1LKp39CPuH-M_QW|",
+                                                      "id": "]u;}5w^y#2D[mFC|sy(J",
                                                       "fields": {
                                                         "AXIS": "Y"
                                                       }
@@ -277,12 +277,12 @@
                                                 "next": {
                                                   "block": {
                                                     "type": "controls_if",
-                                                    "id": "+X7,RK,TS/O8o?::S)ez",
+                                                    "id": "v_J`CoggqU]T7)XoZBVr",
                                                     "inputs": {
                                                       "IF0": {
                                                         "block": {
                                                           "type": "gp_button",
-                                                          "id": "98}v}m#Rfyp_Hbl!cIZ}",
+                                                          "id": "RD?oa]aTLJ;0O$4p1qK,",
                                                           "fields": {
                                                             "BTN": "A"
                                                           }
@@ -291,7 +291,7 @@
                                                       "DO0": {
                                                         "block": {
                                                           "type": "gp_press",
-                                                          "id": "aF}6ae:89B+(nd(h*D9+",
+                                                          "id": "c;)d,?`N5,{F{xB{PgpV",
                                                           "fields": {
                                                             "BUTTON": "7"
                                                           }
@@ -301,12 +301,12 @@
                                                     "next": {
                                                       "block": {
                                                         "type": "controls_if",
-                                                        "id": "?|mc,NUzjLGfs0ADbFz$",
+                                                        "id": "Cm;Vq4yH!I?G_L3$~;,n",
                                                         "inputs": {
                                                           "IF0": {
                                                             "block": {
                                                               "type": "gp_button",
-                                                              "id": "J=x|5a(qLsO+2ohW71;.",
+                                                              "id": "_?oa*CL*,T0EL{3Ik3G5",
                                                               "fields": {
                                                                 "BTN": "B"
                                                               }
@@ -315,7 +315,7 @@
                                                           "DO0": {
                                                             "block": {
                                                               "type": "gp_press",
-                                                              "id": "JOB]Eed%b]IO3@Dw=Bdn",
+                                                              "id": "W$G28ooyqz;9IUD:8_6-",
                                                               "fields": {
                                                                 "BUTTON": "8"
                                                               }
@@ -331,15 +331,12 @@
                                             "ELSE": {
                                               "block": {
                                                 "type": "controls_if",
-                                                "id": "jEx32+;c$boUA]!EY|y}",
-                                                "extraState": {
-                                                  "elseIfCount": 1
-                                                },
+                                                "id": "dmmJ+lsemyrCgKJ(ehqQ",
                                                 "inputs": {
                                                   "IF0": {
                                                     "block": {
                                                       "type": "gp_button",
-                                                      "id": "UaRCE)/J]lGp?~u$QOWL",
+                                                      "id": "EYtR2IzYCwET5b!Un%Z|",
                                                       "fields": {
                                                         "BTN": "A"
                                                       }
@@ -348,7 +345,7 @@
                                                   "DO0": {
                                                     "block": {
                                                       "type": "gp_set_axis",
-                                                      "id": "qp];~z5AP_o_pk[,TtSZ",
+                                                      "id": "6^]M]UDDQwk)#%)nP99T",
                                                       "fields": {
                                                         "AXIS": "Y"
                                                       },
@@ -356,7 +353,7 @@
                                                         "VALUE": {
                                                           "shadow": {
                                                             "type": "math_number",
-                                                            "id": "Qg:l{5+fpFHCnA}6QRXj",
+                                                            "id": "F]yMEN-EQd*6kSNp-.U%",
                                                             "fields": {
                                                               "NUM": -127
                                                             }
@@ -364,30 +361,38 @@
                                                         }
                                                       }
                                                     }
-                                                  },
-                                                  "IF1": {
-                                                    "block": {
-                                                      "type": "gp_button",
-                                                      "id": "jERQf$7zP_0g8!.B+;5!",
-                                                      "fields": {
-                                                        "BTN": "B"
-                                                      }
-                                                    }
-                                                  },
-                                                  "DO1": {
-                                                    "block": {
-                                                      "type": "gp_set_axis",
-                                                      "id": "huaBL?ws((fKsoE+;]2W",
-                                                      "fields": {
-                                                        "AXIS": "Y"
+                                                  }
+                                                },
+                                                "next": {
+                                                  "block": {
+                                                    "type": "controls_if",
+                                                    "id": "=etDIyo%-cG(~JY05F%$",
+                                                    "inputs": {
+                                                      "IF0": {
+                                                        "block": {
+                                                          "type": "gp_button",
+                                                          "id": "u,%.nj;[EbvlYHqJ9{qE",
+                                                          "fields": {
+                                                            "BTN": "B"
+                                                          }
+                                                        }
                                                       },
-                                                      "inputs": {
-                                                        "VALUE": {
-                                                          "shadow": {
-                                                            "type": "math_number",
-                                                            "id": "Ed!_u[IJ|M!cz7Wn(%:Y",
-                                                            "fields": {
-                                                              "NUM": 127
+                                                      "DO0": {
+                                                        "block": {
+                                                          "type": "gp_set_axis",
+                                                          "id": "7-nxk`@o/M|2h|#!RkFX",
+                                                          "fields": {
+                                                            "AXIS": "Y"
+                                                          },
+                                                          "inputs": {
+                                                            "VALUE": {
+                                                              "shadow": {
+                                                                "type": "math_number",
+                                                                "id": ".u+%{F`v/z,P_,qlALk)",
+                                                                "fields": {
+                                                                  "NUM": 127
+                                                                }
+                                                              }
                                                             }
                                                           }
                                                         }
@@ -401,11 +406,11 @@
                                           "next": {
                                             "block": {
                                               "type": "gp_send",
-                                              "id": "#O).6fNP+VlF./$:AIUL",
+                                              "id": "gu]uK,rNBKf%;j/B/;CN",
                                               "next": {
                                                 "block": {
                                                   "type": "gp_status",
-                                                  "id": "s:#`GR|U|azXxS}2IF+6"
+                                                  "id": "68t4I,l?[`{=S]Lj?mmk"
                                                 }
                                               }
                                             }
