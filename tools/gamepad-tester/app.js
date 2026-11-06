@@ -54,19 +54,22 @@
     batteryButton.disabled = true;
     $('battery-level').textContent = 'Not measured';
     $('battery-device').textContent = '';
-    batteryMessage.textContent = 'Choose your controller in the Bluetooth picker.';
+    batteryMessage.textContent = 'Choose your controller in the Bluetooth picker. Disconnect it from Windows first if it is connected there.';
+    let device = null;
+    let onDisconnected = null;
     try {
       if (batteryDevice?.gatt.connected) batteryDevice.gatt.disconnect();
-      batteryDevice = await navigator.bluetooth.requestDevice({
+      device = await navigator.bluetooth.requestDevice({
         filters: [{ services: ['battery_service'] }],
         optionalServices: [supplyService],
       });
-      const device = batteryDevice;
-      device.addEventListener('gattserverdisconnected', () => {
+      batteryDevice = device;
+      onDisconnected = () => {
         if (batteryDevice !== device) return;
         $('battery-level').textContent = 'Not measured';
         batteryMessage.textContent = 'Bluetooth connection closed. Read again to reconnect.';
-      }, { once: true });
+      };
+      device.addEventListener('gattserverdisconnected', onDisconnected, { once: true });
       $('battery-device').textContent = `Bluetooth device: ${device.name || 'Unnamed device'}`;
       batteryMessage.textContent = 'Reading supply voltage…';
       const server = await device.gatt.connect();
@@ -77,11 +80,14 @@
       const millivolts = value.getUint16(0, true);
       if (!millivolts) throw new Error('No voltage sample yet');
       $('battery-level').textContent = `${(millivolts / 1000).toFixed(2)} V`;
-      batteryMessage.textContent = 'Read just now. Battery charge cannot be determined from this value alone.';
+      batteryMessage.textContent = 'Read just now. Battery charge cannot be determined from this value alone. Connection released so Windows can reconnect.';
     } catch (error) {
       $('battery-level').textContent = 'Not measured';
-      batteryMessage.textContent = error.name === 'NotFoundError' ? 'Device or voltage service not found. Select the updated micro:bit and try again.' : 'Could not read voltage. Check device access and make sure the updated V1 firmware is installed.';
+      batteryMessage.textContent = error.name === 'NotFoundError' ? 'Device or voltage service not found. Disconnect the gamepad from Windows, select the updated micro:bit, and try again.' : 'Could not read voltage. Disconnect the gamepad from Windows, check browser Bluetooth permission, and make sure the updated V1 firmware is installed.';
     } finally {
+      if (device && onDisconnected) device.removeEventListener('gattserverdisconnected', onDisconnected);
+      if (device?.gatt.connected) device.gatt.disconnect();
+      batteryDevice = null;
       batteryButton.disabled = false;
     }
   });

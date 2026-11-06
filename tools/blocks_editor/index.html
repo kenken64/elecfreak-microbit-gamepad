@@ -242,13 +242,41 @@ button.armed { border-color: var(--err); color: var(--err); }
 		refresh();
 	}
 
-	/* ---- headless generation (used to check the generator from the command line) ---- */
+	async function loadSavedProgramForHeadless() {
+		try {
+			var response = await fetch('/api/program', {cache: 'no-store'});
+			if (response.ok) {
+				var data = await response.json();
+				return data.program || {};
+			}
+		} catch (err) {
+			/* file:// or a plain static server: fall back to the JSON file */
+		}
+		var file = await fetch('/blocks/gamepad.json', {cache: 'no-store'});
+		if (!file.ok) {
+			throw new Error('could not read blocks/gamepad.json (HTTP ' + file.status + ')');
+		}
+		return file.json();
+	}
+
+	/* ---- headless generation (used by tools/check_blocks.py) ---- */
 	if (headless) {
-		load(GP.defaultProgram());
-		document.getElementById('gp-generated').textContent = lastCode;
-		document.getElementById('gp-program').textContent =
-			JSON.stringify(Blockly.serialization.workspaces.save(ws), null, 2);
-		document.documentElement.setAttribute('data-generated', 'yes');
+		var headlessProgram = params.get('generate') === 'saved'
+			? loadSavedProgramForHeadless()
+			: Promise.resolve(GP.defaultProgram());
+
+		headlessProgram.then(function (program) {
+			load(program);
+			document.getElementById('gp-generated').textContent = lastCode;
+			document.getElementById('gp-program').textContent =
+				JSON.stringify(Blockly.serialization.workspaces.save(ws), null, 2);
+			document.documentElement.setAttribute('data-generated', 'yes');
+		}).catch(function (err) {
+			var message = err && err.message ? err.message : String(err);
+			document.getElementById('gp-generated').textContent = 'ERROR: ' + message;
+			document.documentElement.setAttribute('data-generated', 'error');
+			setStatus('Headless generation failed: ' + message, 'err');
+		});
 		return;
 	}
 

@@ -15,7 +15,7 @@
     <section class="connection" aria-label="Controller connection"><div class="connection-icon" aria-hidden="true">⌁</div><div class="connection-copy"><span id="connection-title">Waiting for a gamepad</span><small id="connection-detail">Pair over Bluetooth, then press any button on your micro:bit gamepad.</small></div><div class="connection-actions"><label for="gamepads">MICRO:BIT</label><select id="gamepads" disabled><option>No gamepad detected</option></select><span class="status" id="status"><i></i> WAITING</span></div></section>
     <section class="battery-panel" aria-label="Micro:bit supply voltage">
       <div><span class="section-index">SUPPLY VOLTAGE</span><strong id="battery-level" aria-live="polite">Not measured</strong><small>Micro:bit supply voltage is not a battery percentage. USB power may affect the reading.</small></div>
-      <div><span id="battery-device"></span><p id="battery-message" role="status">Read the micro:bit supply voltage over Bluetooth.</p><button id="battery-connect" type="button">Read supply voltage</button></div>
+      <div><span id="battery-device"></span><p id="battery-message" role="status">Disconnect the gamepad from Windows first. Reading uses its only Bluetooth connection and releases it when done.</p><button id="battery-connect" type="button">Read supply voltage</button></div>
     </section>
     <div class="dashboard">
       <section class="panel controller-panel"><div class="section-head"><div><span class="section-index">01 / LIVE VIEW</span><h2>Your controller <span>↗</span></h2></div><span class="live-tag"><i></i> LIVE INPUT</span></div><p class="panel-description">Press a button or move the stick to see it respond.</p>

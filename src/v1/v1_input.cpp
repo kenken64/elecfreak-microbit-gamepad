@@ -14,22 +14,14 @@
 #include <Arduino.h>
 #include <stdlib.h>
 
+#include "input_math.h"
 #include "v1_input.h"
 
 #define PIN_JOY_X 0
 #define PIN_JOY_Y 1
 #define PIN_KEYS  2
 
-#define ADC_MAX 4095 /* readings normalised to 12 bits */
-
 #define AXIS_AVG_SAMPLES 4
-
-/* Ladder thresholds (10-bit), from the official ELECFREAKS MakeCode sample */
-static const uint16_t key_thresholds_10bit[] = {256, 597, 725, 793, 836, 938};
-
-static uint8_t btn_stable;
-static uint8_t btn_candidate;
-static uint8_t btn_candidate_count;
 
 static int read_12bit(int pin, int count)
 {
@@ -42,40 +34,6 @@ static int read_12bit(int pin, int count)
 	return (sum / count) << 2;
 }
 
-static int8_t scale_axis(int raw, int center, bool invert)
-{
-	int delta = raw - center;
-	int travel = (delta >= 0) ? (ADC_MAX - center) : center;
-	int span = travel * (100 - GP_OUTER_SATURATION_PCT) / 100 - GP_DEADZONE;
-	int mag = abs(delta) - GP_DEADZONE;
-
-	if (mag <= 0 || span <= 0) {
-		return 0;
-	}
-
-	int v = mag * 127 / span;
-
-	if (v > 127) {
-		v = 127;
-	}
-	if (delta < 0) {
-		v = -v;
-	}
-
-	return (int8_t)(invert ? -v : v);
-}
-
-static uint8_t decode_key_ladder(int raw10)
-{
-	for (unsigned i = 0; i < sizeof(key_thresholds_10bit) / sizeof(key_thresholds_10bit[0]); i++) {
-		if (raw10 < key_thresholds_10bit[i]) {
-			return GP_BTN_KEY(i + 1);
-		}
-	}
-
-	return 0;
-}
-
 static int last_p2;           /* latest raw ladder reading (10-bit), for the log */
 static bool keys_connected(void); /* P2 passes its contact self-test */
 
@@ -83,7 +41,7 @@ static uint8_t read_buttons_raw(void)
 {
 	last_p2 = analogRead(PIN_KEYS);
 
-	uint8_t b = keys_connected() ? decode_key_ladder(last_p2) : 0;
+	uint8_t b = keys_connected() ? gp_decode_key_ladder(last_p2) : 0;
 
 	if (digitalRead(PIN_BUTTON_A) == LOW) {
 		b |= GP_BTN_A;
@@ -108,8 +66,8 @@ static int calibrate_axis(int pin)
 	int c = sum / n;
 
 	/* Stick deflected while calibrating? Use the ideal centre instead. */
-	if (abs(c - ADC_MAX / 2) > ADC_MAX / 10) {
-		c = ADC_MAX / 2;
+	if (abs(c - GP_ADC_MAX / 2) > GP_ADC_MAX / 10) {
+		c = GP_ADC_MAX / 2;
 	}
 
 	return c;
@@ -205,8 +163,8 @@ struct axis {
 };
 
 static struct axis axes[2] = {
-	{{"P0 (stick X)", PIN_JOY_X, true, 0}, GP_INVERT_X, ADC_MAX / 2, ADC_MAX / 2, 0},
-	{{"P1 (stick Y)", PIN_JOY_Y, true, 0}, GP_INVERT_Y, ADC_MAX / 2, ADC_MAX / 2, 0},
+	{{"P0 (stick X)", PIN_JOY_X, true, 0}, GP_INVERT_X, GP_ADC_MAX / 2, GP_ADC_MAX / 2, 0},
+	{{"P1 (stick Y)", PIN_JOY_Y, true, 0}, GP_INVERT_Y, GP_ADC_MAX / 2, GP_ADC_MAX / 2, 0},
 };
 
 static void axis_init(struct axis *a)
@@ -228,8 +186,10 @@ static void axis_check(struct axis *a)
 static void axis_sample(struct axis *a)
 {
 	a->raw = read_12bit(a->w.pin, AXIS_AVG_SAMPLES);
-	a->value = a->w.connected ? scale_axis(a->raw, a->center, a->invert) : 0;
+	a->value = a->w.connected ? gp_scale_axis(a->raw, a->center, a->invert) : 0;
 }
+
+static struct gp_debounce buttons;
 
 void input_init(void)
 {
@@ -245,8 +205,7 @@ void input_init(void)
 	Serial.print(" Y=");
 	Serial.println(axes[STICK_Y].center);
 
-	btn_stable = read_buttons_raw();
-	btn_candidate = btn_stable;
+	gp_debounce_init(&buttons, read_buttons_raw());
 
 	Serial.print("Key ladder idle P2=");
 	Serial.println(last_p2);
@@ -265,7 +224,7 @@ static void log_p2(void)
 		Serial.print("P2=");
 		Serial.print(last_p2);
 		Serial.print(" -> key ");
-		uint8_t k = decode_key_ladder(last_p2);
+		uint8_t k = gp_decode_key_ladder(last_p2);
 		Serial.println(k ? 1 + __builtin_ctz(k) : 0);
 	}
 }
@@ -313,17 +272,12 @@ static bool keys_connected(void)
 
 void input_update(void)
 {
+	uint8_t before = buttons.stable;
+
 	pin_watch_update(&keys_watch);
 
-	uint8_t raw = read_buttons_raw();
-
-	/* Debounce: accept a new button set once seen N times in a row */
-	if (raw != btn_candidate) {
-		btn_candidate = raw;
-		btn_candidate_count = 1;
-	} else if (btn_candidate != btn_stable && ++btn_candidate_count >= GP_DEBOUNCE_SAMPLES) {
-		btn_stable = btn_candidate;
-		log_buttons(btn_stable);
+	if (gp_debounce_update(&buttons, read_buttons_raw()) != before) {
+		log_buttons(buttons.stable);
 	}
 	log_p2();
 
@@ -336,7 +290,7 @@ void input_update(void)
 
 uint8_t input_buttons(void)
 {
-	return btn_stable;
+	return buttons.stable;
 }
 
 int8_t input_stick(enum stick_axis a)

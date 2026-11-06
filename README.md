@@ -1,5 +1,7 @@
 # micro:bit Bluetooth Gamepad (Joystick:bit V1 → Windows 11)
 
+[![CI](https://github.com/kenken64/elecfreak-microbit-gamepad/actions/workflows/ci.yml/badge.svg)](https://github.com/kenken64/elecfreak-microbit-gamepad/actions/workflows/ci.yml)
+
 Firmware that turns a **BBC micro:bit** in an **ELECFREAKS Joystick:bit V1 (EF03407)** into a
 Bluetooth LE game controller. Windows 11 uses its own HID-over-GATT driver, so you don't need
 to install anything on the PC. It shows up as **micro:bit Gamepad** with 8 buttons and an X/Y stick.
@@ -7,6 +9,7 @@ to install anything on the PC. It shows up as **micro:bit Gamepad** with 8 butto
 - [Which micro:bit do I have?](#which-microbit-do-i-have)
 - [Controls](#controls)
 - [Build & flash](#build--flash)
+- [Checks](#checks)
 - [Pairing with Windows 11](#pairing-with-windows-11)
 - [Gamepad tester](#gamepad-tester)
 - [Block editor: change the firmware without C++](#block-editor-change-the-firmware-without-c)
@@ -68,6 +71,24 @@ register it in the UICR. If it stays there, the gamepad never starts and the LED
 `pio run -t upload` detects this and does a one-time **full chip erase** first
 (`tools/v1_flash.tcl`). Later uploads keep the stored pairings.
 
+## Checks
+
+Before committing, run the host-side tests and check that the saved blocks still generate
+`src/v1/main.cpp`:
+
+```powershell
+python tools/run_tests.py
+python tools/check_blocks.py
+```
+
+`run_tests.py` compiles `tests/test_input_math.c` for your PC with `cc`/`gcc`/`clang` and checks
+the maths both firmwares share: axis scaling, dead zone, key ladder and debounce. No micro:bit is
+needed.
+
+`check_blocks.py` runs the block editor in headless Chrome/Edge and fails if the C++ is stale. Add
+`--default` to also require `blocks/gamepad.json` to be the built-in default program. CI runs both
+checks and builds `microbit_v1` and `microbit_v2`.
+
 ## Pairing with Windows 11
 
 There's nothing to switch on. **Whenever the gamepad isn't connected, it is discoverable.**
@@ -112,6 +133,8 @@ can affect it, and it may not track the batteries. The standard Bluetooth Batter
 reports a fixed 100% for compatibility; it is not measured charge. The voltage is also logged to
 USB serial in millivolts every five seconds. Older firmware and V2 do not expose this voltage service.
 If the new service is not visible after flashing, remove the old Bluetooth pairing and pair again.
+Reading uses the gamepad's **only** Bluetooth connection, so disconnect it from Windows first
+if it is connected there. The page releases the connection when it is done so Windows can reconnect.
 
 ### How pairing works
 
@@ -292,6 +315,10 @@ headless Chrome or Edge.
 platformio.ini            envs microbit_v1 (default) and microbit_v2
 src/gamepad.h             shared: report layout, HID report descriptor, tunables
                           (axis direction, dead zone, A/B up/down fallback)
+src/input_math.h          shared, hardware-free input maths used by both firmwares:
+                          axis scaling, key ladder, button debounce
+
+tests/test_input_math.c   host-side tests for src/input_math.h (no micro:bit needed)
 
 blocks/gamepad.json       your block program (saved by the block editor)
 
@@ -308,7 +335,11 @@ tools/v1_upload.py, tools/v1_flash.tcl
                           OpenOCD upload that clears a stale MakeCode bootloader
 tools/blocks_editor.py    block editor server (save, build with live log, .hex download)
 tools/blocks_editor/      the editor page: index.html, gp_blocks.js (blocks + C++ generator)
+tools/check_blocks.py     headless check: blocks/gamepad.json -> src/v1/main.cpp
+tools/run_tests.py        builds and runs tests/ with the host C compiler
+tools/browser.py          shared headless Chrome/Edge launcher for the check and docs renderer
 tools/render_blocks.py    renders the block pictures for this README
+tools/gamepad-tester/     browser Gamepad API tester (live input, button check, supply voltage)
 
 docs/blocks/              the firmware drawn as MakeCode-style blocks
   firmware-blocks.html    full page (open in a browser)
