@@ -13,6 +13,7 @@ to install anything on the PC. It shows up as **micro:bit Gamepad** with 8 butto
 - [Pairing with Windows 11](#pairing-with-windows-11)
 - [Gamepad tester](#gamepad-tester)
 - [Block editor: change the firmware without C++](#block-editor-change-the-firmware-without-c)
+- [Deploy the block editor to Railway](docs/railway.md)
 - [How the firmware works, as blocks](#how-the-firmware-works-as-blocks)
 - [Serial log](#serial-log)
 - [Troubleshooting](#troubleshooting)
@@ -219,8 +220,10 @@ if (gp_key_pressed(1)) {
 | LEDs | show status on LEDs, show icon |
 | Logic, Math | if / else, compare, and / or / not, numbers, + − × ÷ |
 
-The server only answers on `127.0.0.1`, and every save or build needs a token that's embedded in
-the page, so other websites can't trigger it. Don't edit `src/v1/main.cpp` by hand, because the
+The local server only answers on `127.0.0.1`, and every save or build needs a token that's embedded in
+the page, so other websites can't trigger it. For a hosted editor, use the [Docker/Railway setup](docs/railway.md)
+with the 2ndBrain.ceo launch guard and a `/data` volume for each user's saved blocks and last successful HEX.
+The **Last built HEX** link downloads saved firmware without another build. Don't edit `src/v1/main.cpp` by hand, because the
 next save overwrites it. To change what a block can do, add a function to `gp_runtime.h`, then a
 block and its generator in `tools/blocks_editor/gp_blocks.js`.
 

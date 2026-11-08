@@ -38,11 +38,23 @@ jobs:
       - name: Input maths tests
         run: python tools/run_tests.py
 
+      - name: Hosted editor and persistent firmware tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+
       - name: Show headless browser
         run: google-chrome --version || chromium --version
 
       - name: Blocks and generated C++ are in sync
         run: python tools/check_blocks.py
+
+  docker:
+    name: Railway Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image and bundled V1 firmware
+        run: docker build -t microbit-gamepad:ci .
 
   build:
     name: Build ${{ matrix.env }}

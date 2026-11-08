@@ -4,7 +4,7 @@
     python tools/blocks_editor.py --no-browser --port 9000
 
 The editor (tools/blocks_editor/) runs in your browser. This small server
-only listens on 127.0.0.1 and:
+defaults to 127.0.0.1 and:
   * loads/saves the blocks in blocks/gamepad.json
   * writes the generated C++ to src/v1/main.cpp
   * builds the firmware ("pio run") when you click "Download" and hands the
@@ -12,8 +12,12 @@ only listens on 127.0.0.1 and:
 
 Every write needs the per-session token embedded in the page, so other
 websites open in the same browser can't drive it.
+
+Hosted mode requires 2ndBrain marketplace launch authentication and stores
+each user's blocks, generated C++ and last successful HEX under GP_DATA_DIR.
 """
 import argparse
+import html
 import http.server
 import json
 import os
@@ -26,10 +30,15 @@ import threading
 import urllib.parse
 import webbrowser
 
+from marketplace_auth import AccessError, MarketplaceAuth
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EDITOR = ROOT / "tools" / "blocks_editor"
 PROGRAM = ROOT / "blocks" / "gamepad.json"
 MAIN_CPP = ROOT / "src" / "v1" / "main.cpp"
+DEFAULT_CPP = MAIN_CPP.read_text(encoding="utf-8")
+DEFAULT_PROGRAM = PROGRAM.read_text(encoding="utf-8")
+DATA_DIR = pathlib.Path(os.environ["GP_DATA_DIR"]).resolve() if os.environ.get("GP_DATA_DIR") else None
 ENV = "microbit_v1"
 FIRMWARE_HEX = ROOT / ".pio" / "build" / ENV / "firmware.hex"
 DOWNLOAD_NAME = "microbit-gamepad.hex"
@@ -43,6 +52,34 @@ STATIC = {
 }
 MAX_BODY = 512 * 1024
 build_lock = threading.Lock()
+AUTH = None
+
+
+class Workspace:
+    def __init__(self, user_id=None):
+        if DATA_DIR:
+            self.root = DATA_DIR / "users" / user_id if user_id else DATA_DIR
+            self.program = self.root / "blocks" / "gamepad.json"
+            self.cpp = self.root / "src" / "v1" / "main.cpp"
+            self.firmware = self.root / "firmware" / DOWNLOAD_NAME
+        else:
+            self.root = ROOT
+            self.program, self.cpp, self.firmware = PROGRAM, MAIN_CPP, FIRMWARE_HEX
+
+    def seed(self):
+        if not self.program.exists():
+            write_text(self.program, DEFAULT_PROGRAM)
+        if not self.cpp.exists():
+            write_text(self.cpp, DEFAULT_CPP)
+
+
+def publish_firmware(workspace):
+    """Keep the last successful HEX outside PlatformIO's disposable build cache."""
+    if workspace.firmware != FIRMWARE_HEX:
+        workspace.firmware.parent.mkdir(parents=True, exist_ok=True)
+        tmp = workspace.firmware.with_suffix(".hex.tmp")
+        shutil.copyfile(FIRMWARE_HEX, tmp)
+        os.replace(tmp, workspace.firmware)
 
 
 def find_pio():
@@ -56,6 +93,21 @@ def find_pio():
     return None
 
 
+def build_process_options():
+    """Keep hosted compiler processes separate from the web session credentials."""
+    name = os.environ.get("GP_BUILD_USER")
+    if not name:
+        return {"env": dict(os.environ, PYTHONUNBUFFERED="1", PLATFORMIO_NO_ANSI="true")}
+    import pwd  # Hosted Linux containers only; local Windows builds keep their defaults.
+    account = pwd.getpwnam(name)
+    env = {key: os.environ[key] for key in (
+        "PATH", "LANG", "LC_ALL", "SSL_CERT_FILE", "SSL_CERT_DIR", "PLATFORMIO_CORE_DIR",
+        "PLATFORMIO_DISABLE_UPGRADE_CHECK", "PLATFORMIO_DISABLE_PROGRESSBAR",
+    ) if key in os.environ}
+    env.update(HOME=account.pw_dir, PYTHONUNBUFFERED="1", PLATFORMIO_NO_ANSI="true")
+    return {"env": env, "user": account.pw_uid, "group": account.pw_gid, "extra_groups": []}
+
+
 def write_text(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
@@ -66,14 +118,48 @@ def write_text(path, text):
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "GamepadBlocks/1"
 
-    def log_message(self, fmt, *args):  # quieter console
-        if not self.path.startswith("/api/program"):
-            sys.stderr.write("  %s\n" % (fmt % args))
+    def log_request(self, code="-", size="-"):
+        path = urllib.parse.urlparse(self.path).path
+        if path != "/api/program":
+            # Launch tokens in query strings must never appear in logs.
+            sys.stderr.write("  %s %s %s\n" % (self.command, path, code))
+
+    def end_headers(self):
+        self.send_header("Referrer-Policy", "no-referrer")
+        super().end_headers()
 
     # -- helpers -------------------------------------------------------
     def _host_ok(self):
+        if AUTH:
+            return True  # All editor routes require a signed, live 2ndBrain session.
         host = self.headers.get("Host", "").rsplit(":", 1)[0].strip("[]")
         return host in ("127.0.0.1", "localhost")
+
+    def _authorize(self):
+        self.claims = None
+        try:
+            if AUTH:
+                self.claims = AUTH.authenticate(self.headers.get("Cookie", ""))
+        except AccessError as error:
+            self._access_error(error)
+            return False
+        if not self._host_ok():
+            self._json(403, {"error": "local access only"})
+            return False
+        return True
+
+    def _access_error(self, error):
+        if urllib.parse.urlparse(self.path).path in ("/", "/api/2ndbrain/launch"):
+            body = ('<!doctype html><html lang="en"><meta charset="utf-8">'
+                    '<meta name="viewport" content="width=device-width, initial-scale=1">'
+                    '<title>Launch Gamepad Blocks</title><body style="font-family:system-ui;max-width:40rem;margin:10vh auto;padding:24px">'
+                    '<h1>Gamepad Blocks</h1><p>%s</p>'
+                    '<a href="https://2ndbrain.ceo/dashboard/workflows">Open My Workflows in 2ndBrain</a></body></html>') % html.escape(str(error))
+            return self._send(error.status, body, "text/html; charset=utf-8")
+        return self._json(error.status, {"error": str(error)})
+
+    def _workspace(self):
+        return Workspace(self.claims["user_id"] if self.claims else None)
 
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         data = body if isinstance(body, bytes) else body.encode("utf-8")
@@ -90,9 +176,24 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # -- GET -----------------------------------------------------------
     def do_GET(self):
-        if not self._host_ok():
-            return self._json(403, {"error": "local access only"})
         path = urllib.parse.urlparse(self.path).path
+        if path == "/healthz":
+            return self._json(200, {"ok": True})
+        if AUTH and path == "/api/2ndbrain/launch":
+            token = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get("launch_token", [""])[0]
+            try:
+                cookie = AUTH.launch_cookie(token)
+            except AccessError as error:
+                return self._access_error(error)
+            self.send_response(303)
+            self.send_header("Location", "/")
+            self.send_header("Set-Cookie", cookie)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+        if not self._authorize():
+            return None
         if path in ("/", "/index.html"):
             html = (EDITOR / "index.html").read_text(encoding="utf-8")
             return self._send(200, html.replace("__GP_TOKEN__", TOKEN), "text/html; charset=utf-8")
@@ -100,9 +201,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             name, ctype = STATIC[path]
             return self._send(200, (EDITOR / name).read_bytes(), ctype)
         if path == "/api/firmware.hex":
-            if not FIRMWARE_HEX.is_file():
+            firmware = self._workspace().firmware
+            if not firmware.is_file():
                 return self._json(404, {"error": "no firmware built yet"})
-            data = FIRMWARE_HEX.read_bytes()
+            data = firmware.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "application/octet-stream")
             self.send_header("Content-Disposition", 'attachment; filename="%s"' % DOWNLOAD_NAME)
@@ -113,25 +215,35 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return None
         if path == "/api/program":
             program = None
-            if PROGRAM.is_file():
+            source = self._workspace().program
+            if source.is_file():
                 try:
-                    program = json.loads(PROGRAM.read_text(encoding="utf-8"))
+                    program = json.loads(source.read_text(encoding="utf-8"))
                 except ValueError:
                     return self._json(500, {"error": "blocks/gamepad.json is not valid JSON"})
-            return self._json(200, {"program": program})
+            elif DATA_DIR:
+                program = json.loads(DEFAULT_PROGRAM)
+            return self._json(200, {"program": program, "hasFirmware": self._workspace().firmware.is_file()})
         return self._json(404, {"error": "not found"})
 
     # -- POST ----------------------------------------------------------
     def do_POST(self):
-        if not self._host_ok() or not secrets.compare_digest(self.headers.get("X-GP-Token", ""), TOKEN):
+        if not self._authorize():
+            return None
+        if not secrets.compare_digest(self.headers.get("X-GP-Token", ""), TOKEN):
             return self._json(403, {"error": "forbidden"})
-        length = int(self.headers.get("Content-Length") or 0)
-        if length > MAX_BODY:
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return self._json(400, {"error": "invalid content length"})
+        if length < 0 or length > MAX_BODY:
             return self._json(413, {"error": "request too large"})
         try:
             body = json.loads(self.rfile.read(length) or b"{}")
         except ValueError:
             return self._json(400, {"error": "invalid JSON"})
+        if not isinstance(body, dict):
+            return self._json(400, {"error": "expected a JSON object"})
 
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/save":
@@ -146,12 +258,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return self._json(400, {"error": "expected {program, code}"})
         if GENERATED_MARK not in code or "void setup()" not in code or "void loop()" not in code:
             return self._json(400, {"error": "code doesn't look like generated main.cpp"})
-        if MAIN_CPP.is_file() and GENERATED_MARK not in MAIN_CPP.read_text(encoding="utf-8"):
-            backup = MAIN_CPP.with_name("main.cpp.handwritten")
-            if not backup.exists():
-                shutil.copy2(MAIN_CPP, backup)
-        write_text(PROGRAM, json.dumps(program, indent=2) + "\n")
-        write_text(MAIN_CPP, code)
+        if not build_lock.acquire(blocking=False):
+            return self._json(409, {"error": "a build or save is already running"})
+        try:
+            workspace = self._workspace()
+            if workspace.cpp.is_file() and GENERATED_MARK not in workspace.cpp.read_text(encoding="utf-8"):
+                backup = workspace.cpp.with_name("main.cpp.handwritten")
+                if not backup.exists():
+                    shutil.copy2(workspace.cpp, backup)
+            write_text(workspace.program, json.dumps(program, indent=2) + "\n")
+            write_text(workspace.cpp, code)
+        finally:
+            build_lock.release()
         return self._json(200, {"ok": True, "files": ["blocks/gamepad.json", "src/v1/main.cpp"]})
 
     def _pio(self, args):
@@ -165,25 +283,45 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not build_lock.acquire(blocking=False):
             return self._json(409, {"error": "a build is already running"})
         proc = None
+        streaming = False
+
+        def emit(text):
+            self.wfile.write(text.encode("utf-8"))
+            self.wfile.flush()
+
         try:
+            workspace = self._workspace()
+            if DATA_DIR:
+                workspace.seed()
+                # One compiler workspace, selected while holding the build lock.
+                # Saved sources and downloads stay isolated by signed user ID.
+                write_text(MAIN_CPP, workspace.cpp.read_text(encoding="utf-8"))
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")
             self.end_headers()  # no Content-Length: the body ends when we close
-
-            def emit(text):
-                self.wfile.write(text.encode("utf-8"))
-                self.wfile.flush()
-
+            streaming = True
             emit("$ pio %s\n" % " ".join(args))
-            env = dict(os.environ, PYTHONUNBUFFERED="1", PLATFORMIO_NO_ANSI="true")
-            proc = subprocess.Popen([pio] + args, cwd=str(ROOT), env=env, text=True,
+            proc = subprocess.Popen([pio] + args, cwd=str(ROOT), text=True,
                                     encoding="utf-8", errors="replace", bufsize=1,
-                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            for line in proc.stdout:
-                emit(line)
-            ok = proc.wait(timeout=900) == 0
+                                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    **build_process_options())
+            watchdog = threading.Timer(900, proc.kill)
+            watchdog.daemon = True
+            watchdog.start()
+            try:
+                for line in proc.stdout:
+                    emit(line)
+                ok = proc.wait(timeout=10) == 0
+            finally:
+                watchdog.cancel()
+            if ok:
+                if not FIRMWARE_HEX.is_file():
+                    emit("\nBuild returned success without firmware.hex\n")
+                    ok = False
+                else:
+                    publish_firmware(workspace)
             emit("\n%s%s\n" % (RESULT_MARK, json.dumps({"ok": ok})))
         except (BrokenPipeError, ConnectionResetError):
             pass  # browser went away; stop the build below
@@ -192,31 +330,61 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 emit("\nTimed out after 15 minutes\n%s%s\n" % (RESULT_MARK, json.dumps({"ok": False})))
             except OSError:
                 pass
+        except OSError as error:
+            self.log_error("build/storage error: %s", error)
+            if not streaming:
+                return self._json(500, {"error": "could not prepare build storage"})
+            try:
+                emit("\nCould not build or store firmware. Check the server log and volume permissions.\n%s%s\n" % (RESULT_MARK, json.dumps({"ok": False})))
+            except OSError:
+                pass
         finally:
             if proc and proc.poll() is None:
                 proc.kill()
+            if proc:
+                proc.wait()
+                if proc.stdout:
+                    proc.stdout.close()
             build_lock.release()
         self.close_connection = True
         return None
 
 
 def main():
+    global AUTH
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--host", default=os.environ.get("GP_HOST", "127.0.0.1"))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8765")))
     ap.add_argument("--no-browser", action="store_true")
     args = ap.parse_args()
 
-    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    url = "http://127.0.0.1:%d/" % args.port
+    try:
+        AUTH = MarketplaceAuth.from_env(required=args.host not in ("127.0.0.1", "localhost")
+                                        or os.environ.get("GP_REQUIRE_AUTH") == "1")
+    except ValueError as error:
+        ap.error(str(error))
+    if AUTH and not DATA_DIR:
+        ap.error("GP_DATA_DIR is required for 2ndBrain user workspaces")
+    if DATA_DIR:
+        DATA_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.environ.get("GP_BUILD_USER"):
+            DATA_DIR.chmod(0o700)
+    httpd = http.server.ThreadingHTTPServer((args.host, args.port), Handler)
+    url = "http://%s:%d/" % (args.host, httpd.server_address[1])
     print("Gamepad block editor: %s  (Ctrl+C to stop)" % url)
-    print("  blocks : %s" % PROGRAM.relative_to(ROOT))
-    print("  output : %s" % MAIN_CPP.relative_to(ROOT))
+    if DATA_DIR:
+        print("  storage: %s" % DATA_DIR)
+    else:
+        print("  blocks : %s" % PROGRAM.relative_to(ROOT))
+        print("  output : %s" % MAIN_CPP.relative_to(ROOT))
     if not args.no_browser:
         threading.Timer(0.5, webbrowser.open, [url]).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
         print("\nstopped")
+    finally:
+        httpd.server_close()
 
 
 if __name__ == "__main__":

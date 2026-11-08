@@ -120,7 +120,8 @@ button.armed { border-color: var(--err); color: var(--err); }
     <button id="btn-saved" type="button" disabled title="Open the previously saved project">Open saved</button>
     <button id="btn-default" type="button" title="Replace the blocks with the program that matches the hand-written firmware">Load firmware default</button>
     <button id="btn-save" type="button">Save</button>
-    <button id="btn-download" type="button" class="primary" title="Save, build the firmware on this PC and download microbit-gamepad.hex">Download</button>
+    <a id="btn-hex" class="help-link" href="/api/firmware.hex" download="microbit-gamepad.hex" hidden>Last built HEX</a>
+    <button id="btn-download" type="button" class="primary" title="Save, build the firmware and download microbit-gamepad.hex">Download</button>
   </div>
 </header>
 <main class="split">
@@ -133,7 +134,7 @@ button.armed { border-color: var(--err); color: var(--err); }
       <button id="btn-copy" class="small" type="button">Copy C++</button>
     </div>
     <pre id="code" class="code" tabindex="0" aria-label="Generated main.cpp"></pre>
-    <pre id="log" class="code" tabindex="0" aria-label="Build log" hidden>No build yet. "Download" builds the firmware on this PC with PlatformIO and shows its output here as it runs.</pre>
+    <pre id="log" class="code" tabindex="0" aria-label="Build log" hidden>No build yet. "Download" builds the firmware with PlatformIO and shows its output here as it runs.</pre>
   </aside>
 </main>
 <pre id="gp-generated" hidden></pre>
@@ -172,6 +173,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 	var statusEl = document.getElementById('status');
 	var btnSave = document.getElementById('btn-save');
 	var btnDownload = document.getElementById('btn-download');
+	var btnHex = document.getElementById('btn-hex');
 	var btnDefault = document.getElementById('btn-default');
 	var btnSaved = document.getElementById('btn-saved');
 	var btnHelp = document.getElementById('btn-help');
@@ -396,7 +398,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 				appendLog(line + '\n');
 				var shown = line.trim();
 				if (shown) {
-					setStatus('Building on this PC: ' + (shown.length > 70 ? shown.slice(0, 67) + '…' : shown), '');
+					setStatus('Building firmware: ' + (shown.length > 70 ? shown.slice(0, 67) + '…' : shown), '');
 				}
 			}
 
@@ -440,6 +442,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 			return streamBuild();
 		}).then(function (result) {
 			if (result.ok) {
+				btnHex.hidden = false;
 				downloadHex();
 				appendLog('\nDownloaded microbit-gamepad.hex.\n' +
 					'Next: drag it from your Downloads onto the MICROBIT drive. The yellow light flashes while it copies.\n' +
@@ -520,6 +523,7 @@ button.armed { border-color: var(--err); color: var(--err); }
 		savedProgram = data.program || null;
 		savedKnown = true;
 		replacingSaved = !!savedProgram;
+		btnHex.hidden = !data.hasFirmware;
 		setBusy(false);
 	}).catch(function (err) {
 		setStatus('Could not check the saved project (' + err.message + '). Reload before saving.', 'err');
