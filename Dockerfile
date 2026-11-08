@@ -35,6 +35,7 @@ RUN pio run -e microbit_v1
 # The web process owns the mounted volume; compilers run under a separate UID
 # without the web process's authentication secrets or access to user storage.
 RUN useradd --create-home --uid 10001 builder \
+    && chown builder:builder /app \
     && chown -R builder:builder /app/.pio /opt/platformio
 USER builder
 RUN HOME=/home/builder pio run -e microbit_v1
