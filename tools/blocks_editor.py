@@ -154,7 +154,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     '<meta name="viewport" content="width=device-width, initial-scale=1">'
                     '<title>Launch Gamepad Blocks</title><body style="font-family:system-ui;max-width:40rem;margin:10vh auto;padding:24px">'
                     '<h1>Gamepad Blocks</h1><p>%s</p>'
-                    '<a href="https://2ndbrain.ceo/dashboard/workflows">Open My Workflows in 2ndBrain</a></body></html>') % html.escape(str(error))
+                    '<a href="%s">Open My Workflows in 2ndBrain</a></body></html>') % (
+                        html.escape(str(error)), html.escape(AUTH.workflows_url))
             return self._send(error.status, body, "text/html; charset=utf-8")
         return self._json(error.status, {"error": str(error)})
 

@@ -8,6 +8,7 @@ import os
 import re
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 TOOL_ID = "microbit-gamepad"
@@ -34,6 +35,11 @@ class MarketplaceAuth:
         self.secret = secret.encode("utf-8")
         self.verify_url = verify_url
         self.verify_secret = verify_secret
+
+    @property
+    def workflows_url(self):
+        url = urllib.parse.urlsplit(self.verify_url)
+        return urllib.parse.urlunsplit((url.scheme, url.netloc, "/dashboard/workflows", "", ""))
 
     @classmethod
     def from_env(cls, required=False):
@@ -113,6 +119,9 @@ class MarketplaceAuth:
             if status in (400, 401, 403, 404, 409, 423):
                 raise AccessError("Your 2ndBrain access has ended. Relaunch from My Workflows.", 403) from None
             raise AccessError("2ndBrain access verification is unavailable. Try again shortly.", 503) from None
+        except urllib.error.URLError:
+            hostname = urllib.parse.urlsplit(self.verify_url).hostname or "the configured server"
+            raise AccessError("Cannot reach 2ndBrain at %s. Check the verification URL and try again." % hostname, 503) from None
         except (OSError, ValueError, AttributeError):
             raise AccessError("2ndBrain access verification is unavailable. Try again shortly.", 503) from None
         if not active:

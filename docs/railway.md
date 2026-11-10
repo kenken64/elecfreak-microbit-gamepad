@@ -18,12 +18,16 @@ to the volume only after a successful build.
 ```dotenv
 GP_DATA_DIR=/data
 MICROBIT_GAMEPAD_SESSION_SECRET=<random secret of at least 32 bytes>
-MARKETPLACE_LAUNCH_VERIFY_URL=https://2ndbrain.ceo/api/marketplace/launch-session/verify
+MARKETPLACE_LAUNCH_VERIFY_URL=https://kere.ceo/api/marketplace/launch-session/verify
 MARKETPLACE_LAUNCH_VERIFY_SECRET=<2ndBrain's existing verifier secret, at least 32 bytes>
 ```
 
 Use the same gamepad signing secret on both services and a separate verifier
 secret. These are server-to-server credentials; users enter no new password.
+Use the actual origin serving your 2ndBrain app (`https://kere.ceo` for this
+deployment). `2ndBrain.ceo` is the app/token issuer name; it is not a working
+verification hostname. The return-to-workflows link uses the configured
+verification server's origin.
 The example file is `.env.example`. Railway supplies `PORT`; the server binds to
 `0.0.0.0` and uses that port. `/healthz` is public so Railway can check readiness;
 the editor, saved blocks, build endpoint and firmware downloads require a live
@@ -60,6 +64,15 @@ disabled accounts, paused usage and uninstalled tools. Verification failures den
 access. Launch tokens are omitted from HTTP access logs.
 
 No database migration or Supabase keys are needed for this integration.
+
+### Verification connection errors
+
+If the editor reports that verification is unavailable or that it cannot reach
+2ndBrain, check `MARKETPLACE_LAUNCH_VERIFY_URL` on the **gamepad service** first.
+Set it to the deployed app's full `/api/marketplace/launch-session/verify` URL,
+then redeploy the gamepad service and relaunch from My Workflows. The verifier
+secret must also match the value on the 2ndBrain service. A connection error
+denies access; it does not bypass the launch guard.
 
 ## Files on the volume
 

@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 import unittest
+import urllib.error
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "tools"))
@@ -154,6 +155,23 @@ class HostedEditorTests(unittest.TestCase):
         cookie = self.login()
         with mock.patch("marketplace_auth.urllib.request.urlopen", side_effect=OSError("offline")):
             self.assertEqual(self.request("/api/program", cookie=cookie)[0], 503)
+
+    def test_verifier_connection_error_identifies_hostname_without_leaking_details(self):
+        self.auth.verify_url = "https://missing.example.invalid/api/marketplace/launch-session/verify"
+        token = self.auth.sign(self.claims())
+        with mock.patch("marketplace_auth.urllib.request.urlopen", side_effect=urllib.error.URLError("private transport details")):
+            status, _, body = self.request("/api/2ndbrain/launch?launch_token=" + token)
+        self.assertEqual(status, 503)
+        self.assertIn(b"Cannot reach 2ndBrain at missing.example.invalid", body)
+        self.assertNotIn(b"private transport details", body)
+        self.assertNotIn(token.encode(), body)
+
+    def test_launch_required_link_uses_the_configured_2ndbrain_origin(self):
+        self.auth.verify_url = "https://workspace.example.test/api/marketplace/launch-session/verify"
+        status, _, body = self.request("/")
+        self.assertEqual(status, 401)
+        self.assertIn(b'href="https://workspace.example.test/dashboard/workflows"', body)
+        self.assertNotIn(b"https://2ndbrain.ceo/", body)
 
     def test_invalid_tokens_cannot_launch_or_impersonate_a_user(self):
         for changes in ({"exp": int(time.time()) - 1}, {"iat": int(time.time()) + 100},
